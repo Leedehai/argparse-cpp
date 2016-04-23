@@ -29,6 +29,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <assert.h>
 #include "argparse.hpp"
 
 
@@ -37,8 +38,9 @@ namespace argparse {
   // ========================================================
   // argparse::exception::*
   //
-  exception::ConfigureError::ConfigureError(const std::string &errmsg) {
-    this->err() << "ConfigureError: " << errmsg;
+  exception::ConfigureError::ConfigureError(const std::string& errmsg,
+                                            const std::string& tgt) {
+    this->err() << "ConfigureError: " << errmsg << ", '" << tgt << "'";
   }
   
   exception::ParseError::ParseError(const std::string &errmsg) {
@@ -96,16 +98,49 @@ namespace argparse {
   // ========================================================
   // argparse::Argument
   //
-  Argument::Argument(const std::string& name) : name_(name) {
+  Argument::Argument(argparse_internal::ArgumentProcessor *proc)
+  :  arg_format_(ArgFormat::undef), proc_(proc) {
   }
   Argument::~Argument() {
   }
   
-  Argument& Argument::name(const std::string &v_name) {
-    return *this;
+  const std::string& Argument::set_name(const std::string &v_name) {
+    if (!this->name_.empty()) {
+      throw argparse::exception::ConfigureError("can not redefine name", v_name);
+    }
+    
+    if (v_name.substr(0, 3) == "---") {
+      throw exception::ConfigureError("too long hyphen", v_name);
+    } else if (v_name.substr(0, 2) == "--") {
+      this->name_ = v_name.substr(2);
+    } else if (v_name.substr(0, 1) == "-") {
+      this->name_ = v_name.substr(1);
+    }
+   
+    // this is not an option, sequence
+    if (this->name_.empty()) {
+      this->name_ = v_name;
+      this->arg_format_ = ArgFormat::sequence;
+    } else {
+      this->arg_format_ = ArgFormat::option;
+    }
+    
+    return this->name_;
   }
   
-  Argument& Argument::action(const std::string &v_action) {
+  ParseResult Argument::parse(std::vector<const std::string> args) const {
+    argparse_internal::Option *opt = new argparse_internal::OptionBool(true);
+    return ParseResult(0, std::unique_ptr<argparse_internal::Option>(opt));
+  }
+  
+  
+  Argument& Argument::action(Action action) {
+    this->action_ = action;
+    return *this;
+  }
+
+  Argument& Argument::name(const std::string &v_name) {
+    this->name2_ = v_name;
     return *this;
   }
 
@@ -126,7 +161,8 @@ namespace argparse {
     return *this;
   }
 
-  Argument& Argument::type(const std::string &v_type) {
+  Argument& Argument::type(ArgType v_type) {
+    this->type_ = v_type;
     return *this;
   }
 
@@ -154,17 +190,15 @@ namespace argparse {
   // ========================================================
   // argparse::Parser
   //
-  Parser::Parser(const std::string &prog_name) : prog_name_(prog_name) {
+  Parser::Parser(const std::string &prog_name)
+  : prog_name_(prog_name), proc_(new argparse_internal::ArgumentProcessor()) {
   }
-  
   Parser::~Parser() {
-    
+    delete this->proc_;
   }
   
   Argument& Parser::add_argument(const std::string &name) {
-    Argument *arg = new Argument(name);
-    this->argmap_.insert(std::make_pair(name, arg));
-    return *arg;
+    return this->proc_->add_argument(name);
   }
 
   Values Parser::parse_args(const std::vector<std::string> &args) const {
@@ -175,13 +209,17 @@ namespace argparse {
   Values Parser::parse_args(int argc, char *argv[]) const {
     std::vector<std::string> args;
     for (int i = 0; i < argc; i++) {
-      args.push_back(argv[i]);
+      args.emplace_back(argv[i]);
     }
     
     return this->parse_args(args);
   }
 }
 
+
+// ==================================================================
+// Internal Classes
+//
 
 namespace argparse_internal {
   
@@ -246,4 +284,41 @@ namespace argparse_internal {
     }
     
   }
+  
+  // ------------------------------------------------------------------
+  // class ArgumentProcessor
+  //
+  argparse::Argument& ArgumentProcessor::add_argument(const std::string &name) {
+    auto arg = std::make_shared<argparse::Argument>(this);
+    const std::string& key = arg->set_name(name);
+    
+    switch (arg->arg_format()) {
+      case argparse::ArgFormat::option:
+        this->argmap_.insert(std::make_pair(key, arg));
+        break;
+        
+      case argparse::ArgFormat::sequence:
+        this->argvec_.push_back(arg);
+        break;
+        
+      case argparse::ArgFormat::undef:
+        assert(0);
+        break;
+    }
+    return *(arg.get());
+  }
+  
+  argparse::Values ArgumentProcessor::parse_args(const std::vector<const std::string> &args) const {
+    argparse::Values vals;
+    return vals;
+  }
+  
+  argparse::Values ArgumentProcessor::parse_args(int argc, char *argv[]) const {
+    std::vector<const std::string> vec;
+    for (int i = 0; i < argc; i++) {
+      vec.emplace_back(argv[i]);
+    }
+    return this->parse_args(vec);
+  }
+
 }

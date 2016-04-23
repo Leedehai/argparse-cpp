@@ -41,9 +41,24 @@
 
 namespace argparse_internal {
   class Values;
+  class Option;
+  class ArgumentProcessor;
 }
 
 namespace argparse {
+  enum class Action {
+    store,
+    store_const,
+    store_true,
+    store_false,
+    append,
+    append_const,
+    count,
+    help,
+    version,
+  };
+  
+  class Parser;
   class Values;
 
   namespace exception {
@@ -62,7 +77,7 @@ namespace argparse {
 
     class ConfigureError : public Exception {
     public:
-      ConfigureError(const std::string &errmsg);
+      ConfigureError(const std::string &errmsg, const std::string &tgt);
     };
 
     class ParseError : public Exception {
@@ -86,32 +101,54 @@ namespace argparse {
     };
   }
   
+  enum class ArgFormat {
+    undef,
+    option,
+    sequence,
+  };
+  
+  enum class ArgType {
+    STR,
+    INT,
+    BOOL,
+  };
+
+  typedef std::tuple<int, std::unique_ptr<argparse_internal::Option> > ParseResult;
   
   class Argument {
   private:
+    ArgFormat arg_format_;
     std::string name_;
     std::string name2_;
     std::string nargs_;
     std::string const_;
     std::string default_;
-    std::string type_;
+    ArgType type_;
     std::string choices_;
     bool required_;
     std::string help_;
     std::string metavar_;
     std::string dest_;
+    Action action_;
+    argparse_internal::ArgumentProcessor *proc_;
     
   public:
-    Argument(const std::string& name);
+    Argument(argparse_internal::ArgumentProcessor *proc);
     ~Argument();
     
+    // can be called only once and should be called by Parser::AddArgument
+    const std::string& set_name(const std::string &v_name);
+    ArgFormat arg_format() const { return this->arg_format_; }
+    ParseResult parse(std::vector<const std::string> args) const;
+    
+    // can set secondary option name such as first "-s" and second "--sum"
     Argument& name(const std::string &v_name);
-    Argument& action(const std::string &v_action);
+    Argument& action(Action action);
     Argument& nargs(const std::string &v_nargs);
     Argument& nargs(size_t v_nargs);
     Argument& set_const(const std::string &v_const);
     Argument& set_default(const std::string &v_default);
-    Argument& type(const std::string &v_type);
+    Argument& type(ArgType v_type);
     Argument& choices(const std::string &v_choices);
     Argument& required(bool req);
     Argument& help(const std::string &v_help);
@@ -123,13 +160,16 @@ namespace argparse {
   class Parser {
   private:
     std::string prog_name_;
-    std::map<const std::string, Argument*> argmap_;
+    std::string version_;
+    argparse_internal::ArgumentProcessor *proc_;
     
   public:
     Parser(const std::string &prog_name);
     ~Parser();
+    Parser(const Parser& obj) = delete;
 
-    Parser& usage(const std::string &s);
+    Parser& usage(const std::string& s);
+    Parser& version(const std::string& version);
     Argument& add_argument(const std::string &name);
     Values parse_args(const std::vector<std::string> &args) const;
     Values parse_args(int argc, char *argv[]) const;
@@ -206,7 +246,7 @@ namespace argparse_internal {
   };
 
   // ------------------------------------------------------------------
-  // class Values_: Actual Instance of class Value
+  // class Values: Actual Instance of class argparse::Value
   //
   class Values {
   private:
@@ -223,6 +263,19 @@ namespace argparse_internal {
     bool is_true(const std::string& dest) const;
     bool is_set(const std::string& dest) const;
     void insert_option(const std::string &dest, Option *opt);
+  };
+  
+  class ArgumentProcessor {
+  private:
+    std::map<const std::string, std::shared_ptr<argparse::Argument> > argmap_;
+    std::vector<std::shared_ptr<argparse::Argument> > argvec_;
+  public:
+    ArgumentProcessor() = default;
+    ~ArgumentProcessor() = default;
+    
+    argparse::Argument& add_argument(const std::string &name);
+    argparse::Values parse_args(const std::vector<const std::string> &args) const;
+    argparse::Values parse_args(int argc, char *argv[]) const;
   };
   
 }

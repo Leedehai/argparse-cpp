@@ -35,42 +35,40 @@
 #include "./gtest.h"
 #include "../argparse.hpp"
 
-TEST(Parser, basic_usage) {
-  argparse::Parser *psr = new argparse::Parser("test");
-  std::vector<std::string> args = {"./test", "-a"};
-  psr->add_argument("-a").action(argparse::Action::store_true);
+TEST(Argument, basic) {
+  std::vector<const std::string> seq = {"a", "b"};
 
-  argparse::Values val = psr->parse_args(args);
-  EXPECT_TRUE(val.is_true("a"));
+  argparse_internal::ArgumentProcessor proc;
+  argparse::Argument arg(&proc);
+  arg.set_name("test");
+  arg.nargs(1);
   
+  argparse::ParseResult r = arg.parse(seq);
+  EXPECT_EQ(1, std::get<0>(r));
+  argparse_internal::Option *opt = std::get<1>(r).get();
+  EXPECT_EQ("a", opt->str());
 }
 
-TEST(Parser, nargs1) {
-  argparse::Parser *psr = new argparse::Parser("test");
-  psr->add_argument("-a").nargs(1);
-  std::vector<std::string> args1 = {"./test", "-a", "v"};
-  std::vector<std::string> args2 = {"./test", "-a", "v", "w"};
+TEST(Argument, Integer) {
+  std::vector<const std::string> seq_ok1 = {"10", "b"};
+  std::vector<const std::string> seq_ok2 = {"0", "b"};
+  std::vector<const std::string> seq_ng1 = {"a", "b"};
+  std::vector<const std::string> seq_ng2 = {"-1", "b"};
   
-  argparse::Values val = psr->parse_args(args1);
-  EXPECT_EQ(val.str("a"), "v");
-  EXPECT_THROW(val.str("a", 1), argparse::exception::IndexError);
+  argparse_internal::ArgumentProcessor proc;
+  argparse::Argument arg(&proc);
+  arg.set_name("test");
+  arg.nargs(1);
+  arg.type(argparse::ArgType::INT);
   
-  EXPECT_THROW(psr->parse_args(args2), argparse::exception::ParseError);
-}
+  argparse::ParseResult r1 = arg.parse(seq_ok1);
+  EXPECT_EQ(1, std::get<0>(r1));
+  EXPECT_EQ(10, std::get<1>(r1)->get());
 
-TEST(Parser, nargs2) {
-  argparse::Parser *psr = new argparse::Parser("test");
-  psr->add_argument("-a").nargs(2);
-  std::vector<std::string> args1 = {"./test", "-a", "v"};
-  std::vector<std::string> args2 = {"./test", "-a", "v", "w"};
-  std::vector<std::string> args3 = {"./test", "-a", "v", "w", "x"};
-  
-  argparse::Values val = psr->parse_args(args2);
-  EXPECT_EQ(val.str("a"), "v");
-  EXPECT_EQ(val.str("a", 0), "v");
-  EXPECT_EQ(val.str("a", 1), "w");
-  EXPECT_THROW(val.str("a", 2), argparse::exception::IndexError);
-  
-  EXPECT_THROW(psr->parse_args(args1), argparse::exception::ParseError);
-  EXPECT_THROW(psr->parse_args(args3), argparse::exception::ParseError);
+  argparse::ParseResult r2 = arg.parse(seq_ok2);
+  EXPECT_EQ(1, std::get<0>(r2));
+  EXPECT_EQ(0, std::get<1>(r2)->get());
+
+  EXPECT_THROW(arg.parse(seq_ng1), argparse::exception::ParseError);
+  EXPECT_THROW(arg.parse(seq_ng2), argparse::exception::ParseError);
 }
