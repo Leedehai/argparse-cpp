@@ -31,25 +31,67 @@
 
 #include "argparse.hpp"
 
-namespace argparse {
-  class Values_ {
-  public:
-    Values_() {}
-    ~Values_() {}
-  };
-  
-  // ========================================================
-  // argparse::
-  //
 
+namespace argparse {
+
+  // ========================================================
+  // argparse::exception::*
+  //
+  exception::ConfigureError::ConfigureError(const std::string &errmsg) {
+    this->err() << "ConfigureError: " << errmsg;
+  }
+  
+  exception::ParseError::ParseError(const std::string &errmsg) {
+    this->err() << "ParseError: " << errmsg;
+  }
+  
+  exception::KeyError::KeyError(const std::string& key,
+                                const std::string &errmsg) {
+    this->err() << "KeyError '" << key << "': " << errmsg;
+  }
+  
+  exception::TypeError::TypeError(const std::string &errmsg) {
+    this->err() << "TypeError: " << errmsg;
+  }
+
+  exception::IndexError::IndexError(const std::string &errmsg) {
+    this->err() << "IndexError: " << errmsg;
+  }
+
+  
   // ========================================================
   // argparse::Values
   //
-  Values::Values() : ptr_(new Values_()) {
+  Values::Values() : ptr_(new argparse_internal::Values()) {
   }
   
   Values::Values(const Values& obj) : ptr_(obj.ptr_) {
   }
+  
+  Values::~Values() {
+  }
+  
+  Values& Values::operator=(const Values &obj) {
+    this->ptr_ = obj.ptr_;
+    return *this;
+  }
+
+  const std::string& Values::str(const std::string& key, size_t idx) const {
+    return this->ptr_->str(key, idx);
+  }
+  size_t Values::size(const std::string &key) const {
+    return this->ptr_->size(key);
+  }
+  int Values::get(const std::string& key, size_t idx) const {
+    return this->ptr_->get(key, idx);
+  }
+  bool Values::is_true(const std::string &key) const {
+    return this->ptr_->is_true(key);
+  }
+  bool Values::is_set(const std::string& dest) const {
+    return this->ptr_->is_set(dest);
+  }
+
   
   // ========================================================
   // argparse::Argument
@@ -70,6 +112,11 @@ namespace argparse {
   Argument& Argument::nargs(const std::string &v_nargs) {
     return *this;
   }
+  
+  Argument& Argument::nargs(size_t v_nargs) {
+    return *this;
+  }
+
 
   Argument& Argument::set_const(const std::string &v_const) {
     return *this;
@@ -114,5 +161,89 @@ namespace argparse {
     
   }
   
-  // 
+  Argument& Parser::add_argument(const std::string &name) {
+    Argument *arg = new Argument(name);
+    this->argmap_.insert(std::make_pair(name, arg));
+    return *arg;
+  }
+
+  Values Parser::parse_args(const std::vector<std::string> &args) const {
+    Values val;
+    return val;
+  }
+
+  Values Parser::parse_args(int argc, char *argv[]) const {
+    std::vector<std::string> args;
+    for (int i = 0; i < argc; i++) {
+      args.push_back(argv[i]);
+    }
+    
+    return this->parse_args(args);
+  }
+}
+
+
+namespace argparse_internal {
+  
+  Values::~Values() {
+    for (auto it : this->optmap_) {
+      for (auto vid : it.second) {
+        delete vid;
+      }
+    }
+  }
+  
+  Option* Values::find_option(const std::string& dest, size_t idx) const {
+    auto it = this->optmap_.find(dest);
+    if (it == this->optmap_.end()) {
+      throw argparse::exception::KeyError(dest, "not found in destination");
+    }
+    
+    if (idx >= it->second.size()) {
+      std::stringstream ss;
+      ss << idx << ": out of range for " << dest << ", " <<
+      "except < " << it->second.size();
+      throw argparse::exception::IndexError(ss.str());
+    }
+    
+    Option *opt = it->second[idx];
+    return opt;
+  }
+  
+  const std::string& Values::str(const std::string& dest, size_t idx) const {
+    return this->find_option(dest, idx)->str();
+  }
+  
+  int Values::get(const std::string& dest, size_t idx) const {
+    return this->find_option(dest, idx)->get();
+  }
+  bool Values::is_true(const std::string& dest) const {
+    return false;
+  }
+  
+  size_t Values::size(const std::string& dest) const {
+    auto it = this->optmap_.find(dest);
+    if (it == this->optmap_.end()) {
+      throw argparse::exception::KeyError(dest, "not found in destination");
+    }
+    
+    return it->second.size();
+  }
+  
+  bool Values::is_set(const std::string& dest) const {
+    auto it = this->optmap_.find(dest);
+    if (it == this->optmap_.end()) {
+      throw argparse::exception::KeyError(dest, "not found in destination");
+    }
+    
+    return (it->second.size() > 0);
+  }
+  
+  void Values::insert_option(const std::string &dest, Option *opt) {
+    auto it = this->optmap_.find(dest);
+    if (it == this->optmap_.end()) {
+      throw argparse::exception::KeyError(dest, "not found in destination");
+    }
+    
+  }
 }
