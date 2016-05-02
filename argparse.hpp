@@ -58,6 +58,7 @@ namespace argparse {
     version,
   };
   
+  
   class Parser;
   class Values;
 
@@ -112,6 +113,13 @@ namespace argparse {
     INT,
     BOOL,
   };
+  
+  enum class Nargs {
+    NUMBER,
+    ASTERISK,
+    QUESTION,
+    PLUS,
+  };
 
   typedef std::tuple<int, std::unique_ptr<argparse_internal::Option> > ParseResult;
   
@@ -120,7 +128,8 @@ namespace argparse {
     ArgFormat arg_format_;
     std::string name_;
     std::string name2_;
-    std::string nargs_;
+    Nargs nargs_;
+    size_t nargs_num_;
     std::string const_;
     std::string default_;
     ArgType type_;
@@ -132,6 +141,9 @@ namespace argparse {
     Action action_;
     argparse_internal::ArgumentProcessor *proc_;
     
+    size_t parse_append(const std::vector<const std::string>& args, size_t idx,
+                        std::vector<argparse_internal::Option*> *opt_list) const;
+    
   public:
     Argument(argparse_internal::ArgumentProcessor *proc);
     ~Argument();
@@ -139,7 +151,8 @@ namespace argparse {
     // can be called only once and should be called by Parser::AddArgument
     const std::string& set_name(const std::string &v_name);
     ArgFormat arg_format() const { return this->arg_format_; }
-    ParseResult parse(std::vector<const std::string> args, size_t idx) const;
+    size_t parse(const std::vector<const std::string>& args, size_t idx,
+                 std::vector<argparse_internal::Option*> *opt_list) const;
     
     // can set secondary option name such as first "-s" and second "--sum"
     Argument& name(const std::string &v_name);
@@ -229,6 +242,10 @@ namespace argparse_internal {
     virtual bool is_true() const {
       throw argparse::exception::TypeError("not has a boolean value");
     }
+    virtual bool is_null() const {
+      return false;
+    }
+    
     bool is_valid() const { return this->valid_; }
     const std::string err() const {
       return this->err_.str();
@@ -264,6 +281,13 @@ namespace argparse_internal {
     OptionBool(const std::string& value);
     ~OptionBool() = default;
     bool is_true() const override { return this->value_; }
+  };
+  
+  class OptionNull : public Option {
+  public:
+    OptionNull() = default;
+    ~OptionNull() = default;
+    bool is_null() const override { return true; }
   };
 
   // ------------------------------------------------------------------

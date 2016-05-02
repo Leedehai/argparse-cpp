@@ -43,9 +43,11 @@ TEST(Argument, basic) {
   arg.set_name("test");
   arg.nargs(1);
   
-  argparse::ParseResult r = arg.parse(seq, 0);
-  EXPECT_EQ(1, std::get<0>(r));
-  argparse_internal::Option *opt = std::get<1>(r).get();
+  std::vector<argparse_internal::Option*> options;
+  size_t idx = arg.parse(seq, 0, &options);
+  EXPECT_EQ(1, idx);
+  EXPECT_EQ(1, options.size());
+  argparse_internal::Option *opt = options[0];
   EXPECT_EQ("a", opt->str());
 }
 
@@ -55,20 +57,23 @@ TEST(Argument, Integer) {
   std::vector<const std::string> seq_ng1 = {"a", "b"};
   std::vector<const std::string> seq_ng2 = {"-1", "b"};
   
+  std::vector<argparse_internal::Option*> options1, options2, options3, options4;
   argparse_internal::ArgumentProcessor proc;
   argparse::Argument arg(&proc);
   arg.set_name("test");
   arg.nargs(1);
   arg.type(argparse::ArgType::INT);
   
-  argparse::ParseResult r1 = arg.parse(seq_ok1, 0);
-  EXPECT_EQ(1, std::get<0>(r1));
-  EXPECT_EQ(10, std::get<1>(r1)->get());
+  size_t r1 = arg.parse(seq_ok1, 0, &options1);
+  EXPECT_EQ(1, r1);
+  EXPECT_EQ(10, options1[0]->get());
 
-  argparse::ParseResult r2 = arg.parse(seq_ok2, 0);
-  EXPECT_EQ(1, std::get<0>(r2));
-  EXPECT_EQ(0, std::get<1>(r2)->get());
+  size_t r2 = arg.parse(seq_ok2, 0, &options2);
+  EXPECT_EQ(1, r2);
+  EXPECT_EQ(0, options2[0]->get());
 
-  EXPECT_THROW(arg.parse(seq_ng1, 0), argparse::exception::ParseError);
-  EXPECT_THROW(arg.parse(seq_ng2, 0), argparse::exception::ParseError);
+  EXPECT_THROW(arg.parse(seq_ng1, 0, &options3),
+               argparse::exception::ParseError);
+  EXPECT_THROW(arg.parse(seq_ng2, 0, &options4),
+               argparse::exception::ParseError);
 }

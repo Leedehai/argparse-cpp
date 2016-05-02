@@ -111,7 +111,12 @@ namespace argparse {
   // argparse::Argument
   //
   Argument::Argument(argparse_internal::ArgumentProcessor *proc)
-  :  arg_format_(ArgFormat::undef), type_(ArgType::STR), proc_(proc) {
+  : arg_format_(ArgFormat::undef),
+    nargs_(Nargs::NUMBER),
+    nargs_num_(1),
+    type_(ArgType::STR),
+    action_(Action::store),
+    proc_(proc) {
   }
   Argument::~Argument() {
   }
@@ -122,7 +127,8 @@ namespace argparse {
     }
     
     if (v_name.substr(0, 3) == "---") {
-      throw exception::ConfigureError("too long hyphen", v_name);
+      throw exception::ConfigureError("too long hyphen. Supporting only 1 or 2",
+                                      v_name);
     } else if (v_name.substr(0, 2) == "--") {
       this->name_ = v_name.substr(2);
     } else if (v_name.substr(0, 1) == "-") {
@@ -140,23 +146,124 @@ namespace argparse {
     return this->name_;
   }
   
-  ParseResult Argument::parse(std::vector<const std::string> args, size_t idx)
+  size_t Argument::parse_append(const std::vector<const std::string>& args,
+                                size_t idx,
+                                std::vector<argparse_internal::Option*>* opt_list)
   const {
-    argparse_internal::Option *opt = NULL;
-
-    if (this->arg_format_ == ArgFormat::option) {
-      
-    } else if (this->arg_format_ == ArgFormat::sequence) {
-      if (args.size() <= idx) {
-        std::stringstream ss;
-        ss << "not enough arguments for '" << this->name_ << "' option";
-        throw exception::ParseError(ss.str());
-      }
-
-      opt = argparse_internal::Option::build_option(args[idx], this->type_);
-      idx += 1;
+    std::vector<argparse_internal::Option*> options;
+    argparse_internal::Option *opt; // Just for readability.
+  
+    // Defined argument number.
+    size_t i = idx, e;
+    if (this->nargs_ == Nargs::NUMBER) {
+      e = idx + this->nargs_num_;
+    } else if (this->nargs_ == Nargs::QUESTION) {
+      e = idx + 1;
+    } else {
+      e = 0;
     }
-    return ParseResult(0, std::unique_ptr<argparse_internal::Option>(opt));
+    
+    // Storing arguments.
+    while ((e == 0 || i < e) && args[i].substr(0, 1) != "-") {
+      opt = argparse_internal::Option::build_option(args[i], this->type_);
+      options.push_back(opt);
+      i++;
+    }
+    
+    assert(i >= idx);
+    size_t argc = i - idx;
+    assert(argc == options.size());
+    
+    std::stringstream err;
+    
+    if (this->nargs_num_ > 1 && argc != this->nargs_num_) {
+      assert(this->nargs_ == Nargs::NUMBER);
+      err << "option '" << this->name_ << "' must have " << this->nargs_num_
+      << "arguments";
+    } else if (argc == 0) { // If no argument,
+      std::string value;
+      
+      // Use if default_ or const_ is set
+      if (! this->default_.empty()) {
+        value = this->default_;
+      } else if (! this->const_.empty()) {
+        value = this->const_;
+      }
+      
+      if (value.empty()) {
+        // No arguments and default values
+        if (this->nargs_ == Nargs::PLUS) {
+          err << "option '" << this->name_ << "' must have 1 or more arguments";
+        } else if (this->nargs_ == Nargs::NUMBER) {
+          assert(this->nargs_num_ == 1);
+          err << "option '" << this->name_ << "' must have 1 arguments";
+        } else if (this->nargs_ == Nargs::QUESTION) {
+          opt = new argparse_internal::OptionNull();
+          options.push_back(opt);
+        }
+      } else {
+        opt = argparse_internal::Option::build_option(value, this->type_);
+        options.push_back(opt);
+      }
+    }
+    
+    // If error, delete all Option instances and throw exception.
+    if (! err.str().empty()) {
+      for (auto opt_ptr : options) {
+        delete opt_ptr;
+      }
+      throw exception::ParseError(err.str());
+    }
+    
+    // Move option pointers to opt_list.
+    for (auto opt_ptr : options) {
+      opt_list->push_back(opt_ptr);
+    }
+    
+    return i;
+  }
+  
+  size_t Argument::parse(const std::vector<const std::string>& args, size_t idx,
+                         std::vector<argparse_internal::Option*> *opt_list)
+  const {
+    size_t r_idx = idx;
+    argparse_internal::Option* opt = nullptr; // Just for readability.
+    
+    switch(this->action_) {
+      // Check double store error in Parser, no matter in Argument::parse.
+      case Action::store:
+      case Action::append:
+        r_idx = this->parse_append(args, idx, opt_list);
+        break;
+        
+      // Check double store error in Parser, no matter in Argument::parse.
+      case Action::store_const:
+      case Action::append_const:
+        opt = argparse_internal::Option::build_option(this->const_, this->type_);
+        break;
+        
+      case Action::store_true:
+        opt = argparse_internal::Option::build_option("true", ArgType::BOOL);
+        break;
+        
+      case Action::store_false:
+        opt = argparse_internal::Option::build_option("false", ArgType::BOOL);
+        break;
+
+      case Action::count:
+      case Action::help:
+      case Action::version:
+        assert(0);
+        break;
+        // TODO:
+        // count, help, version
+    }
+
+    if (opt) {
+      opt_list->push_back(opt);
+    }
+    
+    return r_idx;
   }
   
   
@@ -171,19 +278,35 @@ namespace argparse {
   }
 
   Argument& Argument::nargs(const std::string &v_nargs) {
+    if (v_nargs == "?") {
+      this->nargs_ = Nargs::QUESTION;
+    } else if (v_nargs == "*") {
+      this->nargs_ = Nargs::ASTERISK;
+    } else if (v_nargs == "+") {
+      this->nargs_ = Nargs::PLUS;
+    } else {
+      throw exception::ParseError("Invalid argument: " + v_nargs);
+    }
+
+    this->nargs_num_ = 0;
+    
     return *this;
   }
   
   Argument& Argument::nargs(size_t v_nargs) {
+    this->nargs_num_ = v_nargs;
+    this->nargs_ = Nargs::NUMBER;
     return *this;
   }
 
 
   Argument& Argument::set_const(const std::string &v_const) {
+    this->const_ = v_const;
     return *this;
   }
 
   Argument& Argument::set_default(const std::string &v_default) {
+    this->default_ = v_default;
     return *this;
   }
 
