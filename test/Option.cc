@@ -36,22 +36,68 @@
 #include "../argparse.hpp"
 
 TEST(Option, OptionInt) {
-  argparse_internal::OptionInt opt(2);
+  argparse_internal::OptionInt opt("2");
+  EXPECT_TRUE(opt.is_valid());
   EXPECT_EQ(2, opt.get());
   EXPECT_THROW(opt.str(), argparse::exception::TypeError);
   EXPECT_THROW(opt.is_true(), argparse::exception::TypeError);
+  
+  // With alphabet character (invalid)
+  argparse_internal::OptionInt opt2("123c");
+  EXPECT_FALSE(opt2.is_valid());
+}
+
+TEST(Option, build_option) {
+  // Allow using namespace for readability.
+  using namespace argparse_internal;
+  
+  // Building option class from factory method.
+  Option* opt_i = Option::build_option("512", argparse::ArgType::INT);
+  Option* opt_s = Option::build_option("abc", argparse::ArgType::STR);
+  Option* opt_b = Option::build_option("true", argparse::ArgType::BOOL);
+
+  EXPECT_TRUE(opt_i->is_valid());
+  EXPECT_TRUE(opt_s->is_valid());
+  EXPECT_TRUE(opt_b->is_valid());
+  
+  // Throw exception if invalid format from build_option.
+  EXPECT_THROW(Option::build_option("123e", argparse::ArgType::INT),
+               argparse::exception::ParseError);
+  EXPECT_THROW(Option::build_option("xxx", argparse::ArgType::BOOL),
+               argparse::exception::ParseError);
+  
 }
 
 TEST(Option, OptionStr) {
-  argparse_internal::OptionStr opt("five");
-  EXPECT_EQ("five", opt.str());
-  EXPECT_THROW(opt.get(), argparse::exception::TypeError);
-  EXPECT_THROW(opt.is_true(), argparse::exception::TypeError);
+  argparse_internal::OptionStr opt1("five");
+  EXPECT_TRUE(opt1.is_valid());
+  EXPECT_EQ("five", opt1.str());
+  EXPECT_THROW(opt1.get(), argparse::exception::TypeError);
+  EXPECT_THROW(opt1.is_true(), argparse::exception::TypeError);
+  
+  // Accepting number as string.
+  argparse_internal::OptionStr opt2("1234");
+  EXPECT_TRUE(opt2.is_valid());
+  EXPECT_EQ("1234", opt2.str());
+  EXPECT_THROW(opt2.get(), argparse::exception::TypeError);
+  EXPECT_THROW(opt2.is_true(), argparse::exception::TypeError);
+
 }
 
 TEST(Option, OptionBool) {
-  argparse_internal::OptionBool opt(true);
-  EXPECT_TRUE(opt.is_true());
-  EXPECT_THROW(opt.get(), argparse::exception::TypeError);
-  EXPECT_THROW(opt.str(), argparse::exception::TypeError);
+  argparse_internal::OptionBool opt1("true");
+  EXPECT_TRUE(opt1.is_valid());
+  EXPECT_TRUE(opt1.is_true());
+  EXPECT_THROW(opt1.get(), argparse::exception::TypeError);
+  EXPECT_THROW(opt1.str(), argparse::exception::TypeError);
+  
+  argparse_internal::OptionBool opt2("false");
+  EXPECT_TRUE(opt2.is_valid());
+  EXPECT_FALSE(opt2.is_true());
+  EXPECT_THROW(opt2.get(), argparse::exception::TypeError);
+  EXPECT_THROW(opt2.str(), argparse::exception::TypeError);
+  
+  argparse_internal::OptionBool opt3("invalid_phrase");
+  EXPECT_FALSE(opt3.is_valid());
+
 }

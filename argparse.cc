@@ -81,15 +81,27 @@ namespace argparse {
   const std::string& Values::str(const std::string& key, size_t idx) const {
     return this->ptr_->str(key, idx);
   }
-  size_t Values::size(const std::string &key) const {
-    return this->ptr_->size(key);
+  
+  const std::string& Values::to_s(const std::string& key, size_t idx) const {
+    return this->ptr_->str(key, idx);
   }
+
   int Values::get(const std::string& key, size_t idx) const {
     return this->ptr_->get(key, idx);
   }
+  
+  int Values::to_i(const std::string& key, size_t idx) const {
+    return this->ptr_->get(key, idx);
+  }
+
+  size_t Values::size(const std::string &key) const {
+    return this->ptr_->size(key);
+  }
+
   bool Values::is_true(const std::string &key) const {
     return this->ptr_->is_true(key);
   }
+  
   bool Values::is_set(const std::string& dest) const {
     return this->ptr_->is_set(dest);
   }
@@ -99,7 +111,7 @@ namespace argparse {
   // argparse::Argument
   //
   Argument::Argument(argparse_internal::ArgumentProcessor *proc)
-  :  arg_format_(ArgFormat::undef), proc_(proc) {
+  :  arg_format_(ArgFormat::undef), type_(ArgType::STR), proc_(proc) {
   }
   Argument::~Argument() {
   }
@@ -128,8 +140,22 @@ namespace argparse {
     return this->name_;
   }
   
-  ParseResult Argument::parse(std::vector<const std::string> args) const {
-    argparse_internal::Option *opt = new argparse_internal::OptionBool(true);
+  ParseResult Argument::parse(std::vector<const std::string> args, size_t idx)
+  const {
+    argparse_internal::Option *opt = NULL;
+
+    if (this->arg_format_ == ArgFormat::option) {
+      
+    } else if (this->arg_format_ == ArgFormat::sequence) {
+      if (args.size() <= idx) {
+        std::stringstream ss;
+        ss << "not enough arguments for '" << this->name_ << "' option";
+        throw exception::ParseError(ss.str());
+      }
+
+      opt = argparse_internal::Option::build_option(args[idx], this->type_);
+      idx += 1;
+    }
     return ParseResult(0, std::unique_ptr<argparse_internal::Option>(opt));
   }
   
@@ -223,6 +249,59 @@ namespace argparse {
 
 namespace argparse_internal {
   
+  Option* Option::build_option(const std::string& val, argparse::ArgType type) {
+    Option *opt = NULL;
+    
+    switch (type) {
+      case argparse::ArgType::INT:
+        opt = new OptionInt(val);
+        break;
+        
+      case argparse::ArgType::STR:
+        opt = new OptionStr(val);
+        break;
+
+      case argparse::ArgType::BOOL:
+        opt = new OptionBool(val);
+        break;
+    }
+    
+    assert(opt);
+    
+    if (! opt->is_valid()) {
+      const std::string msg = opt->err();
+      delete opt;
+      throw argparse::exception::ParseError(msg);
+    }
+
+    return opt;
+  }
+  
+  
+  OptionInt::OptionInt(const std::string& val) {
+    char *e;
+    
+    this->value_ = strtol(val.c_str(), &e, 0);
+    if (*e != '\0') {
+      this->err_stream() << "Invalid number format: " << val;
+    }
+  }
+  
+  OptionBool::OptionBool(const std::string& val) {
+    if (val == "true") {
+      this->value_ = true;
+    } else if (val == "false") {
+      this->value_ = false;
+    } else {
+      this->err_stream() << "Invalid bool format: " << val << ", " <<
+        "should be true or false";
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // class Values (argparse_interval)
+  //
+
   Values::~Values() {
     for (auto it : this->optmap_) {
       for (auto vid : it.second) {

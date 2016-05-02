@@ -139,7 +139,7 @@ namespace argparse {
     // can be called only once and should be called by Parser::AddArgument
     const std::string& set_name(const std::string &v_name);
     ArgFormat arg_format() const { return this->arg_format_; }
-    ParseResult parse(std::vector<const std::string> args) const;
+    ParseResult parse(std::vector<const std::string> args, size_t idx) const;
     
     // can set secondary option name such as first "-s" and second "--sum"
     Argument& name(const std::string &v_name);
@@ -187,6 +187,9 @@ namespace argparse {
     Values& operator=(const Values &obj);
     const std::string& str(const std::string& dest, size_t idx=0) const;
     int get(const std::string& dest, size_t idx=0) const;
+    const std::string& to_s(const std::string& dest, size_t idx=0) const;
+    int to_i(const std::string& dest, size_t idx=0) const;
+
     size_t size(const std::string& dest) const;
     bool is_true(const std::string& dest) const;
     bool is_set(const std::string& dest) const;
@@ -204,8 +207,18 @@ namespace argparse_internal {
   // class Option: Option Values
   //
   class Option {
+  private:
+    bool valid_;
+    std::stringstream err_;
+    
+  protected:
+    std::stringstream& err_stream() {
+      this->valid_ = false;
+      return this->err_;
+    }
+    
   public:
-    Option() = default;
+    Option() : valid_(true) {}
     virtual ~Option() = default;
     virtual const std::string& str() const {
       throw argparse::exception::TypeError("not has a string value");
@@ -216,13 +229,19 @@ namespace argparse_internal {
     virtual bool is_true() const {
       throw argparse::exception::TypeError("not has a boolean value");
     }
+    bool is_valid() const { return this->valid_; }
+    const std::string err() const {
+      return this->err_.str();
+    }
+    static Option* build_option(const std::string& val, argparse::ArgType type);
   };
   
   class OptionInt : public Option {
   private:
     int value_;
+    
   public:
-    OptionInt(int value) : value_(value) {}
+    OptionInt(const std::string& val);
     ~OptionInt() = default;
     int get() const override { return this->value_; }
   };
@@ -230,6 +249,7 @@ namespace argparse_internal {
   class OptionStr : public Option {
   private:
     std::string value_;
+    
   public:
     OptionStr(const std::string& value) : value_(value) {}
     ~OptionStr() = default;
@@ -239,8 +259,9 @@ namespace argparse_internal {
   class OptionBool : public Option {
   private:
     bool value_;
+    
   public:
-    OptionBool(bool value) : value_(value) {}
+    OptionBool(const std::string& value);
     ~OptionBool() = default;
     bool is_true() const override { return this->value_; }
   };
@@ -259,6 +280,7 @@ namespace argparse_internal {
     
     const std::string& str(const std::string& dest, size_t idx=0) const;
     int get(const std::string& dest, size_t idx=0) const;
+    
     size_t size(const std::string& dest) const;
     bool is_true(const std::string& dest) const;
     bool is_set(const std::string& dest) const;

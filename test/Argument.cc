@@ -43,7 +43,7 @@ TEST(Argument, basic) {
   arg.set_name("test");
   arg.nargs(1);
   
-  argparse::ParseResult r = arg.parse(seq);
+  argparse::ParseResult r = arg.parse(seq, 0);
   EXPECT_EQ(1, std::get<0>(r));
   argparse_internal::Option *opt = std::get<1>(r).get();
   EXPECT_EQ("a", opt->str());
@@ -61,14 +61,14 @@ TEST(Argument, Integer) {
   arg.nargs(1);
   arg.type(argparse::ArgType::INT);
   
-  argparse::ParseResult r1 = arg.parse(seq_ok1);
+  argparse::ParseResult r1 = arg.parse(seq_ok1, 0);
   EXPECT_EQ(1, std::get<0>(r1));
   EXPECT_EQ(10, std::get<1>(r1)->get());
 
-  argparse::ParseResult r2 = arg.parse(seq_ok2);
+  argparse::ParseResult r2 = arg.parse(seq_ok2, 0);
   EXPECT_EQ(1, std::get<0>(r2));
   EXPECT_EQ(0, std::get<1>(r2)->get());
 
-  EXPECT_THROW(arg.parse(seq_ng1), argparse::exception::ParseError);
-  EXPECT_THROW(arg.parse(seq_ng2), argparse::exception::ParseError);
+  EXPECT_THROW(arg.parse(seq_ng1, 0), argparse::exception::ParseError);
+  EXPECT_THROW(arg.parse(seq_ng2, 0), argparse::exception::ParseError);
 }
