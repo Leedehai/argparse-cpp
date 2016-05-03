@@ -52,8 +52,8 @@ TEST(Parser, nargs1) {
   argparse::Argv args2 = {"./test", "-a", "v", "w"};
   
   argparse::Values val = psr->parse_args(args1);
-  EXPECT_EQ(val.str("a"), "v");
-  EXPECT_THROW(val.str("a", 1), argparse::exception::IndexError);
+  EXPECT_EQ(val.get("a"), "v");
+  EXPECT_THROW(val.get("a", 1), argparse::exception::IndexError);
   
   EXPECT_THROW(psr->parse_args(args2), argparse::exception::ParseError);
 }
@@ -66,10 +66,10 @@ TEST(Parser, nargs2) {
   argparse::Argv args3 = {"./test", "-a", "v", "w", "x"};
   
   argparse::Values val = psr->parse_args(args2);
-  EXPECT_EQ(val.str("a"), "v");
-  EXPECT_EQ(val.str("a", 0), "v");
-  EXPECT_EQ(val.str("a", 1), "w");
-  EXPECT_THROW(val.str("a", 2), argparse::exception::IndexError);
+  EXPECT_EQ(val.get("a"), "v");
+  EXPECT_EQ(val.get("a", 0), "v");
+  EXPECT_EQ(val.get("a", 1), "w");
+  EXPECT_THROW(val.get("a", 2), argparse::exception::IndexError);
   
   EXPECT_THROW(psr->parse_args(args1), argparse::exception::ParseError);
   EXPECT_THROW(psr->parse_args(args3), argparse::exception::ParseError);

@@ -194,20 +194,27 @@ namespace argparse {
     Values parse_args(int argc, char *argv[]) const;
   };
 
+  typedef std::map<const std::string,
+                   std::vector<argparse_internal::Var*>*> VarMap;
   
   class Values {
   private:
-    std::shared_ptr<argparse_internal::Values> ptr_;
+    std::shared_ptr<VarMap> varmap_;
+    static const std::vector<argparse_internal::Var*>&
+      get_var_arr(const VarMap& varmap, const std::string& key);
+    static const argparse_internal::Var& get_var(const VarMap& varmap,
+                                                 const std::string& key,
+                                                 size_t idx);
     
   public:
-    Values(std::shared_ptr<argparse_internal::Values> ptr);
+    Values(std::shared_ptr<VarMap> varmap);
     Values(const Values& obj);
     ~Values();
     Values& operator=(const Values &obj);
-    const std::string& str(const std::string& dest, size_t idx=0) const;
-    int get(const std::string& dest, size_t idx=0) const;
-    const std::string& to_s(const std::string& dest, size_t idx=0) const;
-    int to_i(const std::string& dest, size_t idx=0) const;
+    const std::string& get(const std::string& dest, size_t idx=0) const;
+    int to_int(const std::string& dest, size_t idx=0) const;
+    const std::string& to_str(const std::string& dest, size_t idx=0) const;
+    
 
     size_t size(const std::string& dest) const;
     bool is_true(const std::string& dest) const;
@@ -304,33 +311,15 @@ namespace argparse_internal {
   };
 
   // ------------------------------------------------------------------
-  // class Values: Actual Instance of class argparse::Value
+  // class ArgumentProcessor
   //
-  class Values {
-  private:
-    std::map<std::string, std::vector<Var*>* > optmap_;
-    Var* find_Var(const std::string& dest, size_t idx) const;
-    
-  public:
-    Values() = default;
-    ~Values();
-    
-    const std::string& str(const std::string& dest, size_t idx=0) const;
-    int get(const std::string& dest, size_t idx=0) const;
-    
-    size_t size(const std::string& dest) const;
-    bool is_true(const std::string& dest) const;
-    bool is_set(const std::string& dest) const;
-    
-    std::vector<Var*>* get_optmap(const std::string& dest);
-  };
-  
   class ArgumentProcessor {
   private:
     std::map<const std::string, std::shared_ptr<argparse::Argument> > argmap_;
     std::vector<std::shared_ptr<argparse::Argument> > argvec_;
     size_t parse_option(const argparse::Argv& args, size_t idx,
-                        const std::string& optkey, Values *vals) const;
+                        const std::string& optkey,
+                        argparse::VarMap *varmap) const;
   public:
     ArgumentProcessor() = default;
     ~ArgumentProcessor() = default;

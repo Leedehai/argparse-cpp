@@ -64,47 +64,73 @@ namespace argparse {
   // ========================================================
   // argparse::Values
   //
-  Values::Values(std::shared_ptr<argparse_internal::Values> ptr)
-  : ptr_(ptr) {
+  const std::vector<argparse_internal::Var*>&
+    Values::get_var_arr(const VarMap& varmap, const std::string& key) {
+    auto it = varmap.find(key);
+    if (it == varmap.end()) {
+      throw argparse::exception::KeyError(key, "not found in options");
+    }
+
+    return *(it->second);
+  }
+
+  const argparse_internal::Var& Values::get_var(const VarMap& varmap,
+                                                const std::string& key,
+                                                size_t idx) {
+    auto arr = get_var_arr(varmap, key);
+    if (arr.size() <= idx) {
+      throw argparse::exception::IndexError(key);
+    }
+    
+    return *(arr[idx]);
+  }
+
+  
+  Values::Values(std::shared_ptr<VarMap> varmap) : varmap_(varmap) {
   }
   
-  Values::Values(const Values& obj) : ptr_(obj.ptr_) {
+  Values::Values(const Values& obj) : varmap_(obj.varmap_) {
   }
   
   Values::~Values() {
   }
   
   Values& Values::operator=(const Values &obj) {
-    this->ptr_ = obj.ptr_;
+    this->varmap_ = obj.varmap_;
     return *this;
   }
 
-  const std::string& Values::str(const std::string& key, size_t idx) const {
-    return this->ptr_->str(key, idx);
+  const std::string& Values::get(const std::string& key, size_t idx) const {
+    return this->to_str(key, idx);
   }
   
-  const std::string& Values::to_s(const std::string& key, size_t idx) const {
-    return this->ptr_->str(key, idx);
+  const std::string& Values::to_str(const std::string& key, size_t idx) const {
+    const argparse_internal::Var& v = Values::get_var(*(this->varmap_.get()),
+                                                      key, idx);
+    return v.to_s();
   }
 
-  int Values::get(const std::string& key, size_t idx) const {
-    return this->ptr_->get(key, idx);
+  int Values::to_int(const std::string& key, size_t idx) const {
+    const argparse_internal::Var& v = Values::get_var(*(this->varmap_.get()),
+                                                      key, idx);
+    return v.to_i();
   }
   
-  int Values::to_i(const std::string& key, size_t idx) const {
-    return this->ptr_->get(key, idx);
-  }
-
   size_t Values::size(const std::string &key) const {
-    return this->ptr_->size(key);
+    auto arr = get_var_arr(*(this->varmap_.get()), key);
+    return arr.size();
   }
 
   bool Values::is_true(const std::string &key) const {
-    return this->ptr_->is_true(key);
+    auto arr = get_var_arr(*(this->varmap_.get()), key);
+    assert(arr.size() == 1);
+    return arr[0]->is_true();
   }
   
   bool Values::is_set(const std::string& dest) const {
-    return this->ptr_->is_set(dest);
+    const VarMap& varmap = *(this->varmap_.get());
+    auto it = varmap.find(dest);
+    return (it != varmap.end());
   }
 
   
@@ -425,102 +451,35 @@ namespace argparse_internal {
     }
   }
 
-  // ------------------------------------------------------------------
-  // class Values (argparse_interval)
-  //
 
-  Values::~Values() {
-    for (auto it : this->optmap_) {
-      for (auto vid : *(it.second)) {
-        delete vid;
-      }
-      delete it.second;
-    }
-  }
-  
-  Var* Values::find_Var(const std::string& dest, size_t idx) const {
-    auto it = this->optmap_.find(dest);
-    if (it == this->optmap_.end()) {
-      throw argparse::exception::KeyError(dest, "not found in arguments");
-    }
-    
-    if (idx >= it->second->size()) {
-      std::stringstream ss;
-      ss << idx << ": out of range for " << dest << ", " <<
-      "except < " << it->second->size();
-      throw argparse::exception::IndexError(ss.str());
-    }
-    
-    Var *opt = (*(it->second))[idx];
-    return opt;
-  }
-  
-  std::vector<Var*>* Values::get_optmap(const std::string& dest) {
-    auto it = this->optmap_.find(dest);
-    std::vector<Var*> *vec = nullptr;
-    if (it == this->optmap_.end()) {
-      vec = new std::vector<Var*>();
-      this->optmap_.insert(std::make_pair(dest, vec));
-    } else {
-      vec = it->second;
-    }
-    
-    assert(vec != nullptr);
-    return vec;
-  }
-
-  
-  const std::string& Values::str(const std::string& dest, size_t idx) const {
-    return this->find_Var(dest, idx)->to_s();
-  }
-  
-  int Values::get(const std::string& dest, size_t idx) const {
-    return this->find_Var(dest, idx)->to_i();
-  }
-  bool Values::is_true(const std::string& dest) const {
-    return this->find_Var(dest, 0)->is_true();
-  }
-  
-  size_t Values::size(const std::string& dest) const {
-    auto it = this->optmap_.find(dest);
-    if (it == this->optmap_.end()) {
-      throw argparse::exception::KeyError(dest, "not found in destination");
-    }
-    
-    return (it->second)->size();
-  }
-  
-  bool Values::is_set(const std::string& dest) const {
-    auto it = this->optmap_.find(dest);
-    if (it == this->optmap_.end()) {
-      throw argparse::exception::KeyError(dest, "not found in destination");
-    }
-    
-    return ((it->second)->size() > 0);
-  }
   
   
   // ------------------------------------------------------------------
   // class ArgumentProcessor
   //
-  size_t ArgumentProcessor::parse_option(const argparse::Argv& args, size_t idx,
+  size_t ArgumentProcessor::parse_option(const argparse::Argv& args,
+                                         size_t idx,
                                          const std::string& optkey,
-                                         Values *vals) const {
+                                         argparse::VarMap *varmap) const {
     auto it = this->argmap_.find(optkey);
     if (it == this->argmap_.end()) {
       throw argparse::exception::ParseError("option not found: " + optkey);
     }
 
     std::shared_ptr<argparse::Argument> argument = it->second;
-    
-    auto optvec = vals->get_optmap(argument->get_dest());
-    if (optvec->size() > 0 &&
+    const std::string& dest = argument->get_dest();
+    auto vit = varmap->find(dest);
+
+    if (vit != varmap->end() &&
         (argument->get_action() != argparse::Action::append &&
          argument->get_action() != argparse::Action::append_const)) {
-          throw argparse::exception::ParseError("duplicated option: " + optkey);
+          throw argparse::exception::ParseError("duplicated option, " +
+                                                optkey);
         }
-    
-    idx = argument->parse(args, idx, optvec);
+
+    auto varvec = new std::vector<Var*>();
+    varmap->insert(std::make_pair(dest, varvec));
+    idx = argument->parse(args, idx, varvec);
     
     return idx;
   }
@@ -547,7 +506,8 @@ namespace argparse_internal {
   
   argparse::Values ArgumentProcessor::parse_args(const argparse::Argv& args)
   const {
-    std::shared_ptr<Values> ptr = std::make_shared<Values>();
+    std::shared_ptr<argparse::VarMap> ptr =
+      std::make_shared<argparse::VarMap>();
     size_t seq_idx = 0;
     
     for (size_t idx = 1; idx < args.size(); ) {
@@ -572,7 +532,17 @@ namespace argparse_internal {
         
         std::shared_ptr<argparse::Argument> argument = this->argvec_[seq_idx];
         const std::string& dest = argument->get_dest();
-        idx = argument->parse(args, idx, ptr->get_optmap(dest));
+        std::vector<Var*> *vararr = nullptr;
+        auto vit = ptr->find(dest);
+        if (vit == ptr->end()) {
+          vararr = new std::vector<Var*>();
+          ptr->insert(std::make_pair(dest, vararr));
+        } else {
+          vararr = vit->second;
+        }
+        assert(vararr != nullptr);
+        
+        idx = argument->parse(args, idx, vararr);
         seq_idx++;
       }
     }
