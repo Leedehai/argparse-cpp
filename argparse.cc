@@ -404,13 +404,16 @@ namespace argparse_internal {
   
   VarInt::VarInt(const std::string& val) {
     char *e;
-    
+    this->str_ = val;
     this->value_ = strtol(val.c_str(), &e, 0);
     if (*e != '\0') {
       this->err_stream() << "Invalid number format: " << val;
     }
   }
   
+  const std::string VarBool::true_("true");
+  const std::string VarBool::false_("false");
+
   VarBool::VarBool(const std::string& val) {
     if (val == "true") {
       this->value_ = true;
@@ -468,11 +471,11 @@ namespace argparse_internal {
 
   
   const std::string& Values::str(const std::string& dest, size_t idx) const {
-    return this->find_Var(dest, idx)->str();
+    return this->find_Var(dest, idx)->to_s();
   }
   
   int Values::get(const std::string& dest, size_t idx) const {
-    return this->find_Var(dest, idx)->get();
+    return this->find_Var(dest, idx)->to_i();
   }
   bool Values::is_true(const std::string& dest) const {
     return this->find_Var(dest, 0)->is_true();

@@ -40,7 +40,6 @@ TEST(Argument, basic) {
 
   argparse_internal::ArgumentProcessor proc;
   argparse::Argument arg(&proc);
-  arg.set_name("test");
   arg.nargs(1);
   
   std::vector<argparse_internal::Var*> options;
@@ -48,7 +47,7 @@ TEST(Argument, basic) {
   EXPECT_EQ(1, idx);
   EXPECT_EQ(1, options.size());
   argparse_internal::Var *opt = options[0];
-  EXPECT_EQ("a", opt->str());
+  EXPECT_EQ("a", opt->to_s());
 }
 
 TEST(Argument, Integer) {
@@ -66,14 +65,17 @@ TEST(Argument, Integer) {
   
   size_t r1 = arg.parse(seq_ok1, 0, &options1);
   EXPECT_EQ(1, r1);
-  EXPECT_EQ(10, options1[0]->get());
+  EXPECT_EQ(10, options1[0]->to_i());
 
   size_t r2 = arg.parse(seq_ok2, 0, &options2);
   EXPECT_EQ(1, r2);
-  EXPECT_EQ(0, options2[0]->get());
+  EXPECT_EQ(0, options2[0]->to_i());
 
   EXPECT_THROW(arg.parse(seq_ng1, 0, &options3),
                argparse::exception::ParseError);
   EXPECT_THROW(arg.parse(seq_ng2, 0, &options4),
                argparse::exception::ParseError);
 }
+
+
+

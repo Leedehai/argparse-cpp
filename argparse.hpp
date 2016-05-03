@@ -239,10 +239,10 @@ namespace argparse_internal {
   public:
     Var() : valid_(true) {}
     virtual ~Var() = default;
-    virtual const std::string& str() const {
+    virtual const std::string& to_s() const {
       throw argparse::exception::TypeError("not has a string value");
     }
-    virtual int get() const {
+    virtual int to_i() const {
       throw argparse::exception::TypeError("not has an integer value");
     }
     virtual bool is_true() const {
@@ -262,11 +262,13 @@ namespace argparse_internal {
   class VarInt : public Var {
   private:
     int value_;
+    std::string str_;
     
   public:
     VarInt(const std::string& val);
     ~VarInt() = default;
-    int get() const override { return this->value_; }
+    const std::string& to_s() const override { return this->str_; }
+    int to_i() const override { return this->value_; }
   };
 
   class VarStr : public Var {
@@ -276,16 +278,21 @@ namespace argparse_internal {
   public:
     VarStr(const std::string& value) : value_(value) {}
     ~VarStr() = default;
-    const std::string& str() const override { return this->value_; }
+    const std::string& to_s() const override { return this->value_; }
   };
 
   class VarBool : public Var {
   private:
     bool value_;
+    static const std::string true_;
+    static const std::string false_;
     
   public:
     VarBool(const std::string& value);
     ~VarBool() = default;
+    const std::string& to_s() const override {
+      return (this->value_ ? VarBool::true_ : VarBool::false_);
+    }
     bool is_true() const override { return this->value_; }
   };
   

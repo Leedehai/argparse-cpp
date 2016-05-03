@@ -38,8 +38,8 @@
 TEST(Var, VarInt) {
   argparse_internal::VarInt opt("2");
   EXPECT_TRUE(opt.is_valid());
-  EXPECT_EQ(2, opt.get());
-  EXPECT_THROW(opt.str(), argparse::exception::TypeError);
+  EXPECT_EQ( 2,  opt.to_i());
+  EXPECT_EQ("2", opt.to_s());
   EXPECT_THROW(opt.is_true(), argparse::exception::TypeError);
   
   // With alphabet character (invalid)
@@ -71,33 +71,31 @@ TEST(Var, build_var) {
 TEST(Var, VarStr) {
   argparse_internal::VarStr opt1("five");
   EXPECT_TRUE(opt1.is_valid());
-  EXPECT_EQ("five", opt1.str());
-  EXPECT_THROW(opt1.get(), argparse::exception::TypeError);
+  EXPECT_EQ("five", opt1.to_s());
+  EXPECT_THROW(opt1.to_i(), argparse::exception::TypeError);
   EXPECT_THROW(opt1.is_true(), argparse::exception::TypeError);
   
   // Accepting number as string.
   argparse_internal::VarStr opt2("1234");
   EXPECT_TRUE(opt2.is_valid());
-  EXPECT_EQ("1234", opt2.str());
-  EXPECT_THROW(opt2.get(), argparse::exception::TypeError);
+  EXPECT_EQ("1234", opt2.to_s());
+  EXPECT_THROW(opt2.to_i(), argparse::exception::TypeError);
   EXPECT_THROW(opt2.is_true(), argparse::exception::TypeError);
-
 }
 
 TEST(Var, VarBool) {
   argparse_internal::VarBool opt1("true");
   EXPECT_TRUE(opt1.is_valid());
   EXPECT_TRUE(opt1.is_true());
-  EXPECT_THROW(opt1.get(), argparse::exception::TypeError);
-  EXPECT_THROW(opt1.str(), argparse::exception::TypeError);
+  EXPECT_EQ("true", opt1.to_s());
+  EXPECT_THROW(opt1.to_i(), argparse::exception::TypeError);
   
   argparse_internal::VarBool opt2("false");
   EXPECT_TRUE(opt2.is_valid());
   EXPECT_FALSE(opt2.is_true());
-  EXPECT_THROW(opt2.get(), argparse::exception::TypeError);
-  EXPECT_THROW(opt2.str(), argparse::exception::TypeError);
+  EXPECT_EQ("false", opt2.to_s());
+  EXPECT_THROW(opt2.to_i(), argparse::exception::TypeError);
   
   argparse_internal::VarBool opt3("invalid_phrase");
   EXPECT_FALSE(opt3.is_valid());
-
 }
