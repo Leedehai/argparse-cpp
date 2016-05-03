@@ -41,7 +41,7 @@
 
 namespace argparse_internal {
   class Values;
-  class Option;
+  class Var;
   class ArgumentProcessor;
 }
 
@@ -142,7 +142,7 @@ namespace argparse {
     argparse_internal::ArgumentProcessor *proc_;
     
     size_t parse_append(const Argv& args, size_t idx,
-                        std::vector<argparse_internal::Option*> *opt_list) const;
+                        std::vector<argparse_internal::Var*> *opt_list) const;
     
   public:
     Argument(argparse_internal::ArgumentProcessor *proc);
@@ -152,7 +152,7 @@ namespace argparse {
     const std::string& set_name(const std::string &v_name);
     ArgFormat arg_format() const { return this->arg_format_; }
     size_t parse(const Argv& args, size_t idx,
-                 std::vector<argparse_internal::Option*> *opt_list) const;
+                 std::vector<argparse_internal::Var*> *opt_list) const;
     
     // can set secondary option name such as first "-s" and second "--sum"
     Argument& name(const std::string &v_name);
@@ -223,9 +223,9 @@ namespace argparse {
 namespace argparse_internal {
 
   // ------------------------------------------------------------------
-  // class Option: Option Values
+  // class Var: Var Values
   //
-  class Option {
+  class Var {
   private:
     bool valid_;
     std::stringstream err_;
@@ -237,8 +237,8 @@ namespace argparse_internal {
     }
     
   public:
-    Option() : valid_(true) {}
-    virtual ~Option() = default;
+    Var() : valid_(true) {}
+    virtual ~Var() = default;
     virtual const std::string& str() const {
       throw argparse::exception::TypeError("not has a string value");
     }
@@ -256,43 +256,43 @@ namespace argparse_internal {
     const std::string err() const {
       return this->err_.str();
     }
-    static Option* build_option(const std::string& val, argparse::ArgType type);
+    static Var* build_var(const std::string& val, argparse::ArgType type);
   };
   
-  class OptionInt : public Option {
+  class VarInt : public Var {
   private:
     int value_;
     
   public:
-    OptionInt(const std::string& val);
-    ~OptionInt() = default;
+    VarInt(const std::string& val);
+    ~VarInt() = default;
     int get() const override { return this->value_; }
   };
 
-  class OptionStr : public Option {
+  class VarStr : public Var {
   private:
     std::string value_;
     
   public:
-    OptionStr(const std::string& value) : value_(value) {}
-    ~OptionStr() = default;
+    VarStr(const std::string& value) : value_(value) {}
+    ~VarStr() = default;
     const std::string& str() const override { return this->value_; }
   };
 
-  class OptionBool : public Option {
+  class VarBool : public Var {
   private:
     bool value_;
     
   public:
-    OptionBool(const std::string& value);
-    ~OptionBool() = default;
+    VarBool(const std::string& value);
+    ~VarBool() = default;
     bool is_true() const override { return this->value_; }
   };
   
-  class OptionNull : public Option {
+  class VarNull : public Var {
   public:
-    OptionNull() = default;
-    ~OptionNull() = default;
+    VarNull() = default;
+    ~VarNull() = default;
     bool is_null() const override { return true; }
   };
 
@@ -301,8 +301,8 @@ namespace argparse_internal {
   //
   class Values {
   private:
-    std::map<std::string, std::vector<Option*>* > optmap_;
-    Option* find_option(const std::string& dest, size_t idx) const;
+    std::map<std::string, std::vector<Var*>* > optmap_;
+    Var* find_Var(const std::string& dest, size_t idx) const;
     
   public:
     Values() = default;
@@ -315,7 +315,7 @@ namespace argparse_internal {
     bool is_true(const std::string& dest) const;
     bool is_set(const std::string& dest) const;
     
-    std::vector<Option*>* get_optmap(const std::string& dest);
+    std::vector<Var*>* get_optmap(const std::string& dest);
   };
   
   class ArgumentProcessor {

@@ -43,11 +43,11 @@ TEST(Argument, basic) {
   arg.set_name("test");
   arg.nargs(1);
   
-  std::vector<argparse_internal::Option*> options;
+  std::vector<argparse_internal::Var*> options;
   size_t idx = arg.parse(seq, 0, &options);
   EXPECT_EQ(1, idx);
   EXPECT_EQ(1, options.size());
-  argparse_internal::Option *opt = options[0];
+  argparse_internal::Var *opt = options[0];
   EXPECT_EQ("a", opt->str());
 }
 
@@ -57,7 +57,7 @@ TEST(Argument, Integer) {
   std::vector<const std::string> seq_ng1 = {"a", "b"};
   std::vector<const std::string> seq_ng2 = {"-1", "b"};
   
-  std::vector<argparse_internal::Option*> options1, options2, options3, options4;
+  std::vector<argparse_internal::Var*> options1, options2, options3, options4;
   argparse_internal::ArgumentProcessor proc;
   argparse::Argument arg(&proc);
   arg.set_name("test");

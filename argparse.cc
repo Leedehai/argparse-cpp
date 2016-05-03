@@ -148,10 +148,10 @@ namespace argparse {
   }
   
   size_t Argument::parse_append(const Argv& args, size_t idx,
-                                std::vector<argparse_internal::Option*>* opt_list)
+                                std::vector<argparse_internal::Var*>* opt_list)
   const {
-    std::vector<argparse_internal::Option*> options;
-    argparse_internal::Option *opt; // Just for readability.
+    std::vector<argparse_internal::Var*> options;
+    argparse_internal::Var *opt; // Just for readability.
   
     // Defined argument number.
     size_t i = idx, e;
@@ -166,7 +166,7 @@ namespace argparse {
     // Storing arguments.
     while ((e == 0 || i < e) && i < args.size() &&
            args[i].substr(0, 1) != "-") {
-      opt = argparse_internal::Option::build_option(args[i], this->type_);
+      opt = argparse_internal::Var::build_var(args[i], this->type_);
       options.push_back(opt);
       i++;
     }
@@ -199,11 +199,11 @@ namespace argparse {
           assert(this->nargs_num_ == 1);
           err << "option '" << this->name_ << "' must have 1 arguments";
         } else if (this->nargs_ == Nargs::QUESTION) {
-          opt = new argparse_internal::OptionNull();
+          opt = new argparse_internal::VarNull();
           options.push_back(opt);
         }
       } else {
-        opt = argparse_internal::Option::build_option(value, this->type_);
+        opt = argparse_internal::Var::build_var(value, this->type_);
         options.push_back(opt);
       }
     }
@@ -225,10 +225,10 @@ namespace argparse {
   }
   
   size_t Argument::parse(const Argv& args, size_t idx,
-                         std::vector<argparse_internal::Option*> *opt_list)
+                         std::vector<argparse_internal::Var*> *opt_list)
   const {
     size_t r_idx = idx;
-    argparse_internal::Option* opt = nullptr; // Just for readability.
+    argparse_internal::Var* opt = nullptr; // Just for readability.
     
     switch(this->action_) {
       // Check double store error in Parser, no matter in Argument::parse.
@@ -240,15 +240,15 @@ namespace argparse {
       // Check double store error in Parser, no matter in Argument::parse.
       case Action::store_const:
       case Action::append_const:
-        opt = argparse_internal::Option::build_option(this->const_, this->type_);
+        opt = argparse_internal::Var::build_var(this->const_, this->type_);
         break;
         
       case Action::store_true:
-        opt = argparse_internal::Option::build_option("true", ArgType::BOOL);
+        opt = argparse_internal::Var::build_var("true", ArgType::BOOL);
         break;
         
       case Action::store_false:
-        opt = argparse_internal::Option::build_option("false", ArgType::BOOL);
+        opt = argparse_internal::Var::build_var("false", ArgType::BOOL);
         break;
 
       case Action::count:
@@ -337,7 +337,7 @@ namespace argparse {
     return *this;
   }
 
-  // ========================================================
+  // ------------------------------------------------------------------
   // argparse::Parser
   //
   Parser::Parser(const std::string &prog_name)
@@ -373,20 +373,20 @@ namespace argparse {
 
 namespace argparse_internal {
   
-  Option* Option::build_option(const std::string& val, argparse::ArgType type) {
-    Option *opt = NULL;
+  Var* Var::build_var(const std::string& val, argparse::ArgType type) {
+    Var *opt = NULL;
     
     switch (type) {
       case argparse::ArgType::INT:
-        opt = new OptionInt(val);
+        opt = new VarInt(val);
         break;
         
       case argparse::ArgType::STR:
-        opt = new OptionStr(val);
+        opt = new VarStr(val);
         break;
 
       case argparse::ArgType::BOOL:
-        opt = new OptionBool(val);
+        opt = new VarBool(val);
         break;
     }
     
@@ -402,7 +402,7 @@ namespace argparse_internal {
   }
   
   
-  OptionInt::OptionInt(const std::string& val) {
+  VarInt::VarInt(const std::string& val) {
     char *e;
     
     this->value_ = strtol(val.c_str(), &e, 0);
@@ -411,7 +411,7 @@ namespace argparse_internal {
     }
   }
   
-  OptionBool::OptionBool(const std::string& val) {
+  VarBool::VarBool(const std::string& val) {
     if (val == "true") {
       this->value_ = true;
     } else if (val == "false") {
@@ -435,7 +435,7 @@ namespace argparse_internal {
     }
   }
   
-  Option* Values::find_option(const std::string& dest, size_t idx) const {
+  Var* Values::find_Var(const std::string& dest, size_t idx) const {
     auto it = this->optmap_.find(dest);
     if (it == this->optmap_.end()) {
       throw argparse::exception::KeyError(dest, "not found in arguments");
@@ -448,15 +448,15 @@ namespace argparse_internal {
       throw argparse::exception::IndexError(ss.str());
     }
     
-    Option *opt = (*(it->second))[idx];
+    Var *opt = (*(it->second))[idx];
     return opt;
   }
   
-  std::vector<Option*>* Values::get_optmap(const std::string& dest) {
+  std::vector<Var*>* Values::get_optmap(const std::string& dest) {
     auto it = this->optmap_.find(dest);
-    std::vector<Option*> *vec = nullptr;
+    std::vector<Var*> *vec = nullptr;
     if (it == this->optmap_.end()) {
-      vec = new std::vector<Option*>();
+      vec = new std::vector<Var*>();
       this->optmap_.insert(std::make_pair(dest, vec));
     } else {
       vec = it->second;
@@ -468,14 +468,14 @@ namespace argparse_internal {
 
   
   const std::string& Values::str(const std::string& dest, size_t idx) const {
-    return this->find_option(dest, idx)->str();
+    return this->find_Var(dest, idx)->str();
   }
   
   int Values::get(const std::string& dest, size_t idx) const {
-    return this->find_option(dest, idx)->get();
+    return this->find_Var(dest, idx)->get();
   }
   bool Values::is_true(const std::string& dest) const {
-    return this->find_option(dest, 0)->is_true();
+    return this->find_Var(dest, 0)->is_true();
   }
   
   size_t Values::size(const std::string& dest) const {
