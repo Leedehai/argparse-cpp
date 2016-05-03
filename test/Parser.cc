@@ -37,7 +37,7 @@
 
 TEST(Parser, basic_usage) {
   argparse::Parser *psr = new argparse::Parser("test");
-  std::vector<std::string> args = {"./test", "-a"};
+  argparse::Argv args = {"./test", "-a"};
   psr->add_argument("-a").action(argparse::Action::store_true);
 
   argparse::Values val = psr->parse_args(args);
@@ -48,8 +48,8 @@ TEST(Parser, basic_usage) {
 TEST(Parser, nargs1) {
   argparse::Parser *psr = new argparse::Parser("test");
   psr->add_argument("-a").nargs(1);
-  std::vector<std::string> args1 = {"./test", "-a", "v"};
-  std::vector<std::string> args2 = {"./test", "-a", "v", "w"};
+  argparse::Argv args1 = {"./test", "-a", "v"};
+  argparse::Argv args2 = {"./test", "-a", "v", "w"};
   
   argparse::Values val = psr->parse_args(args1);
   EXPECT_EQ(val.str("a"), "v");
@@ -61,9 +61,9 @@ TEST(Parser, nargs1) {
 TEST(Parser, nargs2) {
   argparse::Parser *psr = new argparse::Parser("test");
   psr->add_argument("-a").nargs(2);
-  std::vector<std::string> args1 = {"./test", "-a", "v"};
-  std::vector<std::string> args2 = {"./test", "-a", "v", "w"};
-  std::vector<std::string> args3 = {"./test", "-a", "v", "w", "x"};
+  argparse::Argv args1 = {"./test", "-a", "v"};
+  argparse::Argv args2 = {"./test", "-a", "v", "w"};
+  argparse::Argv args3 = {"./test", "-a", "v", "w", "x"};
   
   argparse::Values val = psr->parse_args(args2);
   EXPECT_EQ(val.str("a"), "v");

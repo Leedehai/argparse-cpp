@@ -121,7 +121,7 @@ namespace argparse {
     PLUS,
   };
 
-  typedef std::tuple<int, std::unique_ptr<argparse_internal::Option> > ParseResult;
+  typedef std::vector<const std::string> Argv;
   
   class Argument {
   private:
@@ -141,7 +141,7 @@ namespace argparse {
     Action action_;
     argparse_internal::ArgumentProcessor *proc_;
     
-    size_t parse_append(const std::vector<const std::string>& args, size_t idx,
+    size_t parse_append(const Argv& args, size_t idx,
                         std::vector<argparse_internal::Option*> *opt_list) const;
     
   public:
@@ -151,7 +151,7 @@ namespace argparse {
     // can be called only once and should be called by Parser::AddArgument
     const std::string& set_name(const std::string &v_name);
     ArgFormat arg_format() const { return this->arg_format_; }
-    size_t parse(const std::vector<const std::string>& args, size_t idx,
+    size_t parse(const Argv& args, size_t idx,
                  std::vector<argparse_internal::Option*> *opt_list) const;
     
     // can set secondary option name such as first "-s" and second "--sum"
@@ -184,7 +184,7 @@ namespace argparse {
     Parser& usage(const std::string& s);
     Parser& version(const std::string& version);
     Argument& add_argument(const std::string &name);
-    Values parse_args(const std::vector<std::string> &args) const;
+    Values parse_args(const Argv& args) const;
     Values parse_args(int argc, char *argv[]) const;
   };
 
@@ -320,7 +320,7 @@ namespace argparse_internal {
     ~ArgumentProcessor() = default;
     
     argparse::Argument& add_argument(const std::string &name);
-    argparse::Values parse_args(const std::vector<const std::string> &args) const;
+    argparse::Values parse_args(const argparse::Argv& args) const;
     argparse::Values parse_args(int argc, char *argv[]) const;
   };
   

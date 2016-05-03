@@ -146,8 +146,7 @@ namespace argparse {
     return this->name_;
   }
   
-  size_t Argument::parse_append(const std::vector<const std::string>& args,
-                                size_t idx,
+  size_t Argument::parse_append(const Argv& args, size_t idx,
                                 std::vector<argparse_internal::Option*>* opt_list)
   const {
     std::vector<argparse_internal::Option*> options;
@@ -223,7 +222,7 @@ namespace argparse {
     return i;
   }
   
-  size_t Argument::parse(const std::vector<const std::string>& args, size_t idx,
+  size_t Argument::parse(const Argv& args, size_t idx,
                          std::vector<argparse_internal::Option*> *opt_list)
   const {
     size_t r_idx = idx;
@@ -350,13 +349,13 @@ namespace argparse {
     return this->proc_->add_argument(name);
   }
 
-  Values Parser::parse_args(const std::vector<std::string> &args) const {
+  Values Parser::parse_args(const Argv& args) const {
     Values val;
     return val;
   }
 
   Values Parser::parse_args(int argc, char *argv[]) const {
-    std::vector<std::string> args;
+    Argv args;
     for (int i = 0; i < argc; i++) {
       args.emplace_back(argv[i]);
     }
@@ -510,13 +509,14 @@ namespace argparse_internal {
     return *(arg.get());
   }
   
-  argparse::Values ArgumentProcessor::parse_args(const std::vector<const std::string> &args) const {
+  argparse::Values ArgumentProcessor::parse_args(const argparse::Argv& args)
+    const {
     argparse::Values vals;
     return vals;
   }
   
   argparse::Values ArgumentProcessor::parse_args(int argc, char *argv[]) const {
-    std::vector<const std::string> vec;
+    argparse::Argv vec;
     for (int i = 0; i < argc; i++) {
       vec.emplace_back(argv[i]);
     }
