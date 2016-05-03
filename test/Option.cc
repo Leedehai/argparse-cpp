@@ -35,7 +35,7 @@
 #include "./gtest.h"
 #include "../argparse.hpp"
 
-TEST(Option, OptionInt) {
+TEST(Var, VarInt) {
   argparse_internal::VarInt opt("2");
   EXPECT_TRUE(opt.is_valid());
   EXPECT_EQ(2, opt.get());
@@ -47,7 +47,7 @@ TEST(Option, OptionInt) {
   EXPECT_FALSE(opt2.is_valid());
 }
 
-TEST(Option, build_option) {
+TEST(Var, build_var) {
   // Allow using namespace for readability.
   using namespace argparse_internal;
   
@@ -68,7 +68,7 @@ TEST(Option, build_option) {
   
 }
 
-TEST(Option, OptionStr) {
+TEST(Var, VarStr) {
   argparse_internal::VarStr opt1("five");
   EXPECT_TRUE(opt1.is_valid());
   EXPECT_EQ("five", opt1.str());
@@ -84,7 +84,7 @@ TEST(Option, OptionStr) {
 
 }
 
-TEST(Option, OptionBool) {
+TEST(Var, VarBool) {
   argparse_internal::VarBool opt1("true");
   EXPECT_TRUE(opt1.is_valid());
   EXPECT_TRUE(opt1.is_true());
