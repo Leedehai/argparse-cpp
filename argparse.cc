@@ -64,7 +64,8 @@ namespace argparse {
   // ========================================================
   // argparse::Values
   //
-  Values::Values() : ptr_(new argparse_internal::Values()) {
+  Values::Values(std::shared_ptr<argparse_internal::Values> ptr)
+  : ptr_(ptr) {
   }
   
   Values::Values(const Values& obj) : ptr_(obj.ptr_) {
@@ -163,7 +164,8 @@ namespace argparse {
     }
     
     // Storing arguments.
-    while ((e == 0 || i < e) && args[i].substr(0, 1) != "-") {
+    while ((e == 0 || i < e) && i < args.size() &&
+           args[i].substr(0, 1) != "-") {
       opt = argparse_internal::Option::build_option(args[i], this->type_);
       options.push_back(opt);
       i++;
@@ -350,7 +352,7 @@ namespace argparse {
   }
 
   Values Parser::parse_args(const Argv& args) const {
-    Values val;
+    Values val = this->proc_->parse_args(args);
     return val;
   }
 
@@ -426,28 +428,44 @@ namespace argparse_internal {
 
   Values::~Values() {
     for (auto it : this->optmap_) {
-      for (auto vid : it.second) {
+      for (auto vid : *(it.second)) {
         delete vid;
       }
+      delete it.second;
     }
   }
   
   Option* Values::find_option(const std::string& dest, size_t idx) const {
     auto it = this->optmap_.find(dest);
     if (it == this->optmap_.end()) {
-      throw argparse::exception::KeyError(dest, "not found in destination");
+      throw argparse::exception::KeyError(dest, "not found in arguments");
     }
     
-    if (idx >= it->second.size()) {
+    if (idx >= it->second->size()) {
       std::stringstream ss;
       ss << idx << ": out of range for " << dest << ", " <<
-      "except < " << it->second.size();
+      "except < " << it->second->size();
       throw argparse::exception::IndexError(ss.str());
     }
     
-    Option *opt = it->second[idx];
+    Option *opt = (*(it->second))[idx];
     return opt;
   }
+  
+  std::vector<Option*>* Values::get_optmap(const std::string& dest) {
+    auto it = this->optmap_.find(dest);
+    std::vector<Option*> *vec = nullptr;
+    if (it == this->optmap_.end()) {
+      vec = new std::vector<Option*>();
+      this->optmap_.insert(std::make_pair(dest, vec));
+    } else {
+      vec = it->second;
+    }
+    
+    assert(vec != nullptr);
+    return vec;
+  }
+
   
   const std::string& Values::str(const std::string& dest, size_t idx) const {
     return this->find_option(dest, idx)->str();
@@ -457,7 +475,7 @@ namespace argparse_internal {
     return this->find_option(dest, idx)->get();
   }
   bool Values::is_true(const std::string& dest) const {
-    return false;
+    return this->find_option(dest, 0)->is_true();
   }
   
   size_t Values::size(const std::string& dest) const {
@@ -466,7 +484,7 @@ namespace argparse_internal {
       throw argparse::exception::KeyError(dest, "not found in destination");
     }
     
-    return it->second.size();
+    return (it->second)->size();
   }
   
   bool Values::is_set(const std::string& dest) const {
@@ -475,20 +493,35 @@ namespace argparse_internal {
       throw argparse::exception::KeyError(dest, "not found in destination");
     }
     
-    return (it->second.size() > 0);
+    return ((it->second)->size() > 0);
   }
   
-  void Values::insert_option(const std::string &dest, Option *opt) {
-    auto it = this->optmap_.find(dest);
-    if (it == this->optmap_.end()) {
-      throw argparse::exception::KeyError(dest, "not found in destination");
-    }
-    
-  }
   
   // ------------------------------------------------------------------
   // class ArgumentProcessor
   //
+  size_t ArgumentProcessor::parse_option(const argparse::Argv& args, size_t idx,
+                                         const std::string& optkey,
+                                         Values *vals) const {
+    auto it = this->argmap_.find(optkey);
+    if (it == this->argmap_.end()) {
+      throw argparse::exception::ParseError("option not found: " + optkey);
+    }
+
+    std::shared_ptr<argparse::Argument> argument = it->second;
+    
+    auto optvec = vals->get_optmap(argument->get_dest());
+    if (optvec->size() > 0 &&
+        (argument->get_action() != argparse::Action::append &&
+         argument->get_action() != argparse::Action::append_const)) {
+          throw argparse::exception::ParseError("duplicated option: " + optkey);
+        }
+    
+    idx = argument->parse(args, idx, optvec);
+    
+    return idx;
+  }
+
   argparse::Argument& ArgumentProcessor::add_argument(const std::string &name) {
     auto arg = std::make_shared<argparse::Argument>(this);
     const std::string& key = arg->set_name(name);
@@ -510,8 +543,38 @@ namespace argparse_internal {
   }
   
   argparse::Values ArgumentProcessor::parse_args(const argparse::Argv& args)
-    const {
-    argparse::Values vals;
+  const {
+    std::shared_ptr<Values> ptr = std::make_shared<Values>();
+    size_t seq_idx = 0;
+    
+    for (size_t idx = 1; idx < args.size(); ) {
+      const std::string& arg = args[idx];
+      
+      if (arg.substr(0, 3) == "---") {
+        throw argparse::exception::ParseError("too long hyphen. "
+                                              "Supporting only 1 or 2: " + arg);
+      } else if (arg.substr(0, 2) == "--") {
+        const std::string key = arg.substr(2);
+        idx = this->parse_option(args, idx, key, ptr.get());
+      } else if (arg.substr(0, 1) == "-") {
+        for (size_t c = 1; c < arg.length(); c++) {
+          const std::string key = arg.substr(c, 1);
+          idx = this->parse_option(args, idx + 1, key, ptr.get());
+        }
+      } else {
+        if (this->argvec_.size() <= seq_idx) {
+          throw argparse::exception::ParseError("too long arguments after " +
+                                                args[idx]);
+        }
+        
+        std::shared_ptr<argparse::Argument> argument = this->argvec_[seq_idx];
+        const std::string& dest = argument->get_dest();
+        idx = argument->parse(args, idx, ptr->get_optmap(dest));
+        seq_idx++;
+      }
+    }
+
+    argparse::Values vals(ptr);
     return vals;
   }
   

@@ -167,6 +167,12 @@ namespace argparse {
     Argument& help(const std::string &v_help);
     Argument& metavar(const std::string &v_metavar);
     Argument& dest(const std::string &v_dest);
+    
+    const std::string& get_name() const { return this->name_; }
+    Action get_action() const { return this->action_; }
+    const std::string& get_dest() const {
+      return (this->dest_.empty() ? this->name_ : this->dest_);
+    }
   };
   
   
@@ -194,7 +200,7 @@ namespace argparse {
     std::shared_ptr<argparse_internal::Values> ptr_;
     
   public:
-    Values();
+    Values(std::shared_ptr<argparse_internal::Values> ptr);
     Values(const Values& obj);
     ~Values();
     Values& operator=(const Values &obj);
@@ -295,7 +301,7 @@ namespace argparse_internal {
   //
   class Values {
   private:
-    std::map<std::string, std::vector<Option*> > optmap_;
+    std::map<std::string, std::vector<Option*>* > optmap_;
     Option* find_option(const std::string& dest, size_t idx) const;
     
   public:
@@ -308,13 +314,16 @@ namespace argparse_internal {
     size_t size(const std::string& dest) const;
     bool is_true(const std::string& dest) const;
     bool is_set(const std::string& dest) const;
-    void insert_option(const std::string &dest, Option *opt);
+    
+    std::vector<Option*>* get_optmap(const std::string& dest);
   };
   
   class ArgumentProcessor {
   private:
     std::map<const std::string, std::shared_ptr<argparse::Argument> > argmap_;
     std::vector<std::shared_ptr<argparse::Argument> > argvec_;
+    size_t parse_option(const argparse::Argv& args, size_t idx,
+                        const std::string& optkey, Values *vals) const;
   public:
     ArgumentProcessor() = default;
     ~ArgumentProcessor() = default;
