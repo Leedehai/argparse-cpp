@@ -38,7 +38,7 @@
 TEST(Parser, basic_usage) {
   argparse::Parser *psr = new argparse::Parser("test");
   argparse::Argv args = {"./test", "-a"};
-  psr->add_argument("-a").action(argparse::Action::store_true);
+  psr->add_argument("-a").action("store_true");
 
   argparse::Values val = psr->parse_args(args);
   EXPECT_TRUE(val.is_true("a"));

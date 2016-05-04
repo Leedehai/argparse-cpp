@@ -145,6 +145,8 @@ namespace argparse {
                         std::vector<argparse_internal::Var*> *opt_list) const;
     static std::string extract_opt_name(const std::string& name);
     
+    static const std::map<const std::string, Action> ACTION_MAP_;
+    
   public:
     Argument(argparse_internal::ArgumentProcessor *proc);
     ~Argument();
@@ -156,18 +158,18 @@ namespace argparse {
                  std::vector<argparse_internal::Var*> *opt_list) const;
     
     // can set secondary option name such as first "-s" and second "--sum"
-    Argument& name(const std::string &v_name);
-    Argument& action(Action action);
-    Argument& nargs(const std::string &v_nargs);
+    Argument& name(const std::string& v_name);
+    Argument& action(const std::string& action);
+    Argument& nargs(const std::string& v_nargs);
     Argument& nargs(size_t v_nargs);
-    Argument& set_const(const std::string &v_const);
-    Argument& set_default(const std::string &v_default);
+    Argument& set_const(const std::string& v_const);
+    Argument& set_default(const std::string& v_default);
     Argument& type(ArgType v_type);
-    Argument& choices(const std::string &v_choices);
+    Argument& choices(const std::string& v_choices);
     Argument& required(bool req);
-    Argument& help(const std::string &v_help);
-    Argument& metavar(const std::string &v_metavar);
-    Argument& dest(const std::string &v_dest);
+    Argument& help(const std::string& v_help);
+    Argument& metavar(const std::string& v_metavar);
+    Argument& dest(const std::string& v_dest);
     
     const std::string& get_name() const { return this->name_; }
     Action get_action() const { return this->action_; }

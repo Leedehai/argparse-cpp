@@ -137,6 +137,17 @@ namespace argparse {
   // ========================================================
   // argparse::Argument
   //
+  const std::map<const std::string, Action> Argument::ACTION_MAP_ = {
+    {"store",        Action::store},
+    {"store_const",  Action::store_const},
+    {"store_true",   Action::store_true},
+    {"store_false",  Action::store_false},
+    {"append",       Action::append},
+    {"append_const", Action::count},
+    {"help",         Action::help},
+    {"version",      Action::version},
+  };
+
   Argument::Argument(argparse_internal::ArgumentProcessor *proc)
   : arg_format_(ArgFormat::undef),
     nargs_(Nargs::NUMBER),
@@ -308,8 +319,13 @@ namespace argparse {
   }
   
   
-  Argument& Argument::action(Action action) {
-    this->action_ = action;
+  Argument& Argument::action(const std::string& action) {
+    auto ait = Argument::ACTION_MAP_.find(action);
+    if (ait == Argument::ACTION_MAP_.end()) {
+      throw exception::ConfigureError(action + " is not matched with keywords",
+                                      this->name_);
+    }
+    this->action_ = ait->second;
     return *this;
   }
 
