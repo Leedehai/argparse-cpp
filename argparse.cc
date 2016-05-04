@@ -60,82 +60,6 @@ namespace argparse {
     this->err() << "IndexError: " << errmsg;
   }
 
-  
-  // ========================================================
-  // argparse::Values
-  //
-  const std::vector<argparse_internal::Var*>&
-    Values::get_var_arr(const VarMap& varmap, const std::string& key) {
-    auto it = varmap.find(key);
-    if (it == varmap.end()) {
-      throw argparse::exception::KeyError(key, "not found in options");
-    }
-
-    return *(it->second);
-  }
-
-  const argparse_internal::Var& Values::get_var(const VarMap& varmap,
-                                                const std::string& key,
-                                                size_t idx) {
-    auto arr = get_var_arr(varmap, key);
-    if (arr.size() <= idx) {
-      throw argparse::exception::IndexError(key);
-    }
-    
-    return *(arr[idx]);
-  }
-
-  
-  Values::Values(std::shared_ptr<VarMap> varmap) : varmap_(varmap) {
-  }
-  
-  Values::Values(const Values& obj) : varmap_(obj.varmap_) {
-  }
-  
-  Values::~Values() {
-  }
-  
-  Values& Values::operator=(const Values &obj) {
-    this->varmap_ = obj.varmap_;
-    return *this;
-  }
-  
-  const std::string& Values::operator[](const std::string& key) const {
-    return this->to_str(key, 0);
-  }
-  
-  const std::string& Values::get(const std::string& key, size_t idx) const {
-    return this->to_str(key, idx);
-  }
-  
-  const std::string& Values::to_str(const std::string& key, size_t idx) const {
-    const argparse_internal::Var& v = Values::get_var(*(this->varmap_.get()),
-                                                      key, idx);
-    return v.to_s();
-  }
-
-  int Values::to_int(const std::string& key, size_t idx) const {
-    const argparse_internal::Var& v = Values::get_var(*(this->varmap_.get()),
-                                                      key, idx);
-    return v.to_i();
-  }
-  
-  size_t Values::size(const std::string &key) const {
-    auto arr = get_var_arr(*(this->varmap_.get()), key);
-    return arr.size();
-  }
-
-  bool Values::is_true(const std::string &key) const {
-    auto arr = get_var_arr(*(this->varmap_.get()), key);
-    assert(arr.size() == 1);
-    return arr[0]->is_true();
-  }
-  
-  bool Values::is_set(const std::string& dest) const {
-    const VarMap& varmap = *(this->varmap_.get());
-    auto it = varmap.find(dest);
-    return (it != varmap.end());
-  }
 
   
   // ========================================================
@@ -409,7 +333,7 @@ namespace argparse {
     return *this;
   }
 
-  // ------------------------------------------------------------------
+  // ========================================================
   // argparse::Parser
   //
   Parser::Parser(const std::string &prog_name)
@@ -436,7 +360,85 @@ namespace argparse {
     
     return this->parse_args(args);
   }
+  
+  // ========================================================
+  // argparse::Values
+  //
+  const std::vector<argparse_internal::Var*>&
+  Values::get_var_arr(const VarMap& varmap, const std::string& key) {
+    auto it = varmap.find(key);
+    if (it == varmap.end()) {
+      throw argparse::exception::KeyError(key, "not found in options");
+    }
+    
+    return *(it->second);
+  }
+  
+  const argparse_internal::Var& Values::get_var(const VarMap& varmap,
+                                                const std::string& key,
+                                                size_t idx) {
+    auto arr = get_var_arr(varmap, key);
+    if (arr.size() <= idx) {
+      throw argparse::exception::IndexError(key);
+    }
+    
+    return *(arr[idx]);
+  }
+  
+  
+  Values::Values(std::shared_ptr<VarMap> varmap) : varmap_(varmap) {
+  }
+  
+  Values::Values(const Values& obj) : varmap_(obj.varmap_) {
+  }
+  
+  Values::~Values() {
+  }
+  
+  Values& Values::operator=(const Values &obj) {
+    this->varmap_ = obj.varmap_;
+    return *this;
+  }
+  
+  const std::string& Values::operator[](const std::string& key) const {
+    return this->to_str(key, 0);
+  }
+  
+  const std::string& Values::get(const std::string& key, size_t idx) const {
+    return this->to_str(key, idx);
+  }
+  
+  const std::string& Values::to_str(const std::string& key, size_t idx) const {
+    const argparse_internal::Var& v = Values::get_var(*(this->varmap_.get()),
+                                                      key, idx);
+    return v.to_s();
+  }
+  
+  int Values::to_int(const std::string& key, size_t idx) const {
+    const argparse_internal::Var& v = Values::get_var(*(this->varmap_.get()),
+                                                      key, idx);
+    return v.to_i();
+  }
+  
+  size_t Values::size(const std::string &key) const {
+    auto arr = get_var_arr(*(this->varmap_.get()), key);
+    return arr.size();
+  }
+  
+  bool Values::is_true(const std::string &key) const {
+    auto arr = get_var_arr(*(this->varmap_.get()), key);
+    assert(arr.size() == 1);
+    return arr[0]->is_true();
+  }
+  
+  bool Values::is_set(const std::string& dest) const {
+    const VarMap& varmap = *(this->varmap_.get());
+    auto it = varmap.find(dest);
+    return (it != varmap.end());
+  }
+
 }
+
 
 
 // ==================================================================
