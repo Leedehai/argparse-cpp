@@ -148,25 +148,42 @@ namespace argparse {
   Argument::~Argument() {
   }
   
+  std::string Argument::extract_opt_name(const std::string& name) {
+    std::string res;
+    
+    if (name.substr(0, 3) == "---") {
+      throw exception::ConfigureError("too long hyphen. Supporting only 1 or 2",
+                                      name);
+    } else if (name.substr(0, 2) == "--") {
+      res = name.substr(2);
+      if (res.length() <= 1) {
+        throw exception::ConfigureError("option name must be 2 letters and up "
+                                        "for --", name);
+      }
+    } else if (name.substr(0, 1) == "-") {
+      res = name.substr(1);
+      if (res.length() != 1) {
+        throw exception::ConfigureError("option name must be 1 letter for -",
+                                        name);
+      }
+    }
+
+    return res;
+  }
+
   const std::string& Argument::set_name(const std::string &v_name) {
     if (!this->name_.empty()) {
       throw argparse::exception::ConfigureError("can not redefine name", v_name);
     }
     
-    if (v_name.substr(0, 3) == "---") {
-      throw exception::ConfigureError("too long hyphen. Supporting only 1 or 2",
-                                      v_name);
-    } else if (v_name.substr(0, 2) == "--") {
-      this->name_ = v_name.substr(2);
-    } else if (v_name.substr(0, 1) == "-") {
-      this->name_ = v_name.substr(1);
-    }
+    const std::string opt_name = Argument::extract_opt_name(v_name);
    
-    // this is not an option, sequence
-    if (this->name_.empty()) {
+    if (opt_name.empty()) {
+      // this is not an option, sequence
       this->name_ = v_name;
       this->arg_format_ = ArgFormat::sequence;
     } else {
+      this->name_ = opt_name;
       this->arg_format_ = ArgFormat::option;
     }
     
@@ -176,8 +193,7 @@ namespace argparse {
   size_t Argument::parse_append(const Argv& args, size_t idx,
                                 std::vector<argparse_internal::Var*>* opt_list)
   const {
-    std::vector<argparse_internal::Var*> options;
-    argparse_internal::Var *opt; // Just for readability.
+    std::vector<argparse_internal::Var*> vars;
   
     // Defined argument number.
     size_t i = idx, e;
@@ -192,21 +208,20 @@ namespace argparse {
     // Storing arguments.
     while ((e == 0 || i < e) && i < args.size() &&
            args[i].substr(0, 1) != "-") {
-      opt = argparse_internal::Var::build_var(args[i], this->type_);
-      options.push_back(opt);
+      vars.emplace_back(argparse_internal::Var::build_var(args[i], this->type_));
       i++;
     }
     
     assert(i >= idx);
     size_t argc = i - idx;
-    assert(argc == options.size());
+    assert(argc == vars.size());
     
     std::stringstream err;
     
     if (this->nargs_num_ > 1 && argc != this->nargs_num_) {
       assert(this->nargs_ == Nargs::NUMBER);
       err << "option '" << this->name_ << "' must have " << this->nargs_num_
-      << "arguments";
+          << "arguments";
     } else if (argc == 0) { // If no argument,
       std::string value;
       
@@ -225,25 +240,24 @@ namespace argparse {
           assert(this->nargs_num_ == 1);
           err << "option '" << this->name_ << "' must have 1 arguments";
         } else if (this->nargs_ == Nargs::QUESTION) {
-          opt = new argparse_internal::VarNull();
-          options.push_back(opt);
+          vars.emplace_back(new argparse_internal::VarNull());
         }
       } else {
-        opt = argparse_internal::Var::build_var(value, this->type_);
-        options.push_back(opt);
+        vars.emplace_back(argparse_internal::Var::build_var(value,
+                                                               this->type_));
       }
     }
     
     // If error, delete all Option instances and throw exception.
     if (! err.str().empty()) {
-      for (auto opt_ptr : options) {
+      for (auto opt_ptr : vars) {
         delete opt_ptr;
       }
       throw exception::ParseError(err.str());
     }
     
     // Move option pointers to opt_list.
-    for (auto opt_ptr : options) {
+    for (auto opt_ptr : vars) {
       opt_list->push_back(opt_ptr);
     }
     
@@ -300,7 +314,19 @@ namespace argparse {
   }
 
   Argument& Argument::name(const std::string &v_name) {
-    this->name2_ = v_name;
+    if (this->arg_format_ != ArgFormat::option) {
+      throw exception::ConfigureError("second name is allowed for only option, "
+                                      "not sequence", this->name_);
+    }
+    const std::string opt_name = Argument::extract_opt_name(v_name);
+    
+    if (opt_name.empty()) {
+      throw exception::ConfigureError("second name must be option format, "
+                                      "e.g. -a", v_name);
+    }
+    
+    this->name2_ = opt_name;
+    this->proc_->copy_option(this->name_, opt_name);
     return *this;
   }
 
@@ -485,23 +511,53 @@ namespace argparse_internal {
   }
 
   argparse::Argument& ArgumentProcessor::add_argument(const std::string &name) {
-    auto arg = std::make_shared<argparse::Argument>(this);
+    auto arg = new argparse::Argument(this);
     const std::string& key = arg->set_name(name);
     
     switch (arg->arg_format()) {
       case argparse::ArgFormat::option:
-        this->argmap_.insert(std::make_pair(key, arg));
+        this->insert_option(key, arg);
         break;
         
       case argparse::ArgFormat::sequence:
-        this->argvec_.push_back(arg);
+        this->insert_sequence(arg);
         break;
         
       case argparse::ArgFormat::undef:
         assert(0);
         break;
     }
-    return *(arg.get());
+    return *arg;
+  }
+  
+  void ArgumentProcessor::insert_option(const std::string &name,
+                                        argparse::Argument *arg) {
+    if (this->argmap_.find(name) != this->argmap_.end()) {
+      throw argparse::exception::ConfigureError("duplicated option name", name);
+    }
+    
+    std::shared_ptr<argparse::Argument> ptr(arg);
+    this->argmap_.insert(std::make_pair(name, ptr));
+  }
+
+  void ArgumentProcessor::copy_option(const std::string& src,
+                                      const std::string& dst) {
+    auto it = this->argmap_.find(src);
+    if (it == this->argmap_.end()) {
+      throw argparse::exception::ConfigureError("can not copy option from " +
+                                                src, dst);
+    }
+
+    if (this->argmap_.find(dst) != this->argmap_.end()) {
+      throw argparse::exception::ConfigureError("duplicated option name", dst);
+    }
+
+    this->argmap_.insert(std::make_pair(dst, it->second));
+  }
+  
+  void ArgumentProcessor::insert_sequence(argparse::Argument *arg) {
+    // std::unique_ptr<argparse::Argument> ptr(arg);
+    this->argvec_.emplace_back(arg);
   }
   
   argparse::Values ArgumentProcessor::parse_args(const argparse::Argv& args)
@@ -518,7 +574,7 @@ namespace argparse_internal {
                                               "Supporting only 1 or 2: " + arg);
       } else if (arg.substr(0, 2) == "--") {
         const std::string key = arg.substr(2);
-        idx = this->parse_option(args, idx, key, ptr.get());
+        idx = this->parse_option(args, idx + 1, key, ptr.get());
       } else if (arg.substr(0, 1) == "-") {
         for (size_t c = 1; c < arg.length(); c++) {
           const std::string key = arg.substr(c, 1);
@@ -530,8 +586,7 @@ namespace argparse_internal {
                                                 args[idx]);
         }
         
-        std::shared_ptr<argparse::Argument> argument = this->argvec_[seq_idx];
-        const std::string& dest = argument->get_dest();
+        const std::string& dest = this->argvec_[seq_idx]->get_dest();
         std::vector<Var*> *vararr = nullptr;
         auto vit = ptr->find(dest);
         if (vit == ptr->end()) {
@@ -542,7 +597,7 @@ namespace argparse_internal {
         }
         assert(vararr != nullptr);
         
-        idx = argument->parse(args, idx, vararr);
+        idx = this->argvec_[seq_idx]->parse(args, idx, vararr);
         seq_idx++;
       }
     }
@@ -550,13 +605,7 @@ namespace argparse_internal {
     argparse::Values vals(ptr);
     return vals;
   }
-  
-  argparse::Values ArgumentProcessor::parse_args(int argc, char *argv[]) const {
-    argparse::Argv vec;
-    for (int i = 0; i < argc; i++) {
-      vec.emplace_back(argv[i]);
-    }
-    return this->parse_args(vec);
-  }
 
+  
+  
 }

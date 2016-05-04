@@ -143,6 +143,7 @@ namespace argparse {
     
     size_t parse_append(const Argv& args, size_t idx,
                         std::vector<argparse_internal::Var*> *opt_list) const;
+    static std::string extract_opt_name(const std::string& name);
     
   public:
     Argument(argparse_internal::ArgumentProcessor *proc);
@@ -316,7 +317,7 @@ namespace argparse_internal {
   class ArgumentProcessor {
   private:
     std::map<const std::string, std::shared_ptr<argparse::Argument> > argmap_;
-    std::vector<std::shared_ptr<argparse::Argument> > argvec_;
+    std::vector<std::unique_ptr<argparse::Argument> > argvec_;
     size_t parse_option(const argparse::Argv& args, size_t idx,
                         const std::string& optkey,
                         argparse::VarMap *varmap) const;
@@ -325,8 +326,11 @@ namespace argparse_internal {
     ~ArgumentProcessor() = default;
     
     argparse::Argument& add_argument(const std::string &name);
+    void insert_option(const std::string& name, argparse::Argument* arg);
+    void copy_option(const std::string& src, const std::string& dst);
+    void insert_sequence(argparse::Argument *arg);
+
     argparse::Values parse_args(const argparse::Argv& args) const;
-    argparse::Values parse_args(int argc, char *argv[]) const;
   };
   
 }

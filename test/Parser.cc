@@ -74,3 +74,52 @@ TEST(Parser, nargs2) {
   EXPECT_THROW(psr->parse_args(args1), argparse::exception::ParseError);
   EXPECT_THROW(psr->parse_args(args3), argparse::exception::ParseError);
 }
+
+TEST(Parser, nargs_asterisk) {
+  argparse::Parser *psr = new argparse::Parser("test");
+  psr->add_argument("-a").nargs("*");
+  psr->add_argument("-b");
+  
+  // Stop parsing by end of arguments.
+  argparse::Argv ok1 = {"./test", "-a", "v1", "v2"};
+  argparse::Values v1 = psr->parse_args(ok1);
+  EXPECT_EQ(2, v1.size("a"));
+  EXPECT_EQ("v1", v1.get("a", 0));
+  EXPECT_EQ("v2", v1.get("a", 1));
+  
+  // Stop parsing by an other option.
+  argparse::Argv ok2 = {"./test", "-a", "v1", "v2", "-b", "r1"};
+  argparse::Values v2 = psr->parse_args(ok2);
+  EXPECT_EQ(2, v2.size("a"));
+  EXPECT_EQ("v1", v2.get("a", 0));
+  EXPECT_EQ("v2", v2.get("a", 1));
+  EXPECT_EQ(1, v2.size("b"));
+  EXPECT_EQ("r1", v2.get("b"));
+
+  // No option value.
+  argparse::Argv ok3 = {"./test", "-a", "-b", "r1"};
+  argparse::Values v3 = psr->parse_args(ok3);
+  EXPECT_EQ(0, v3.size("a"));
+  EXPECT_TRUE(v3.is_set("a"));
+  EXPECT_EQ(1, v3.size("b"));
+  EXPECT_EQ("r1", v3.get("b"));
+}
+
+TEST(Parser, name2) {
+  argparse::Parser *psr = new argparse::Parser("test");
+  psr->add_argument("-a").name("--action");
+  argparse::Argv ok1 = {"./test", "-a", "v"};
+  argparse::Argv ok2 = {"./test", "--action", "v"};
+  argparse::Argv ng1 = {"./test", "-a"}; // Not enough arguments
+  argparse::Argv ng2 = {"./test", "--action"}; // Same as above
+
+  argparse::Values v1 = psr->parse_args(ok1);
+  argparse::Values v2 = psr->parse_args(ok2);
+  EXPECT_EQ(v1.get("a"), "v"); // Using "name" instead of "dest".
+  EXPECT_EQ(v2.get("a"), "v"); // Same if the option is set by 2nd name (--aciton)
+
+  EXPECT_THROW(psr->parse_args(ng1), argparse::exception::ParseError);
+  EXPECT_THROW(psr->parse_args(ng1), argparse::exception::ParseError);
+}
+
+
