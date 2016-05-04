@@ -214,6 +214,7 @@ namespace argparse {
     Values(const Values& obj);
     ~Values();
     Values& operator=(const Values &obj);
+    const std::string& operator[](const std::string& key) const;
     const std::string& get(const std::string& dest, size_t idx=0) const;
     int to_int(const std::string& dest, size_t idx=0) const;
     const std::string& to_str(const std::string& dest, size_t idx=0) const;

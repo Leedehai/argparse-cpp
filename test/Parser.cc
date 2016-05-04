@@ -39,10 +39,20 @@ TEST(Parser, basic_usage) {
   argparse::Parser *psr = new argparse::Parser("test");
   argparse::Argv args = {"./test", "-a"};
   psr->add_argument("-a").action("store_true");
-
+  
   argparse::Values val = psr->parse_args(args);
   EXPECT_TRUE(val.is_true("a"));
   
+}
+
+TEST(Parser, basic_argument) {
+  argparse::Parser *psr = new argparse::Parser("test");
+  argparse::Argv args = {"./test", "-a", "v"};
+  psr->add_argument("-a");
+  argparse::Values val = psr->parse_args(args);
+  EXPECT_EQ("v", val.get("a"));
+  EXPECT_EQ("v", val.get("a", 0));
+  EXPECT_EQ("v", val["a"]); // ["x"] is same with get("x", 0)
 }
 
 TEST(Parser, nargs1) {

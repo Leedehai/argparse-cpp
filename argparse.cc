@@ -99,7 +99,11 @@ namespace argparse {
     this->varmap_ = obj.varmap_;
     return *this;
   }
-
+  
+  const std::string& Values::operator[](const std::string& key) const {
+    return this->to_str(key, 0);
+  }
+  
   const std::string& Values::get(const std::string& key, size_t idx) const {
     return this->to_str(key, idx);
   }
