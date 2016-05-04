@@ -421,8 +421,12 @@ namespace argparse {
   }
   
   size_t Values::size(const std::string &key) const {
-    auto arr = get_var_arr(*(this->varmap_.get()), key);
-    return arr.size();
+    try {
+      auto arr = get_var_arr(*(this->varmap_.get()), key);
+      return arr.size();
+    } catch (exception::KeyError &e) {
+      return 0;
+    }
   }
   
   bool Values::is_true(const std::string &key) const {
@@ -518,16 +522,21 @@ namespace argparse_internal {
     const std::string& dest = argument->get_dest();
     auto vit = varmap->find(dest);
 
-    if (vit != varmap->end() &&
-        (argument->get_action() != argparse::Action::append &&
-         argument->get_action() != argparse::Action::append_const)) {
-          throw argparse::exception::ParseError("duplicated option, " +
-                                                optkey);
-        }
-
-    auto varvec = new std::vector<Var*>();
-    varmap->insert(std::make_pair(dest, varvec));
-    idx = argument->parse(args, idx, varvec);
+    std::vector<Var*> *vars = nullptr;
+    
+    if (vit != varmap->end()) {
+      if (argument->get_action() != argparse::Action::append &&
+          argument->get_action() != argparse::Action::append_const) {
+          throw argparse::exception::ParseError("duplicated option, " + optkey);
+      }
+      
+      vars = vit->second;
+    } else {
+      vars = new std::vector<Var*>();
+      varmap->insert(std::make_pair(dest, vars));
+    }
+    
+    idx = argument->parse(args, idx, vars);
     
     return idx;
   }
@@ -624,6 +633,22 @@ namespace argparse_internal {
       }
     }
 
+    // Setting default value if missing option.
+    for (auto it : this->argmap_) {
+      auto arg = (it.second);
+      const std::string& dflt = arg->get_default();
+      if (! dflt.empty()) {
+        const std::string& dest = arg->get_dest();
+        if (ptr->find(dest) == ptr->end()) {
+          // The option has default and was not specified in argument.
+          auto vars = new std::vector<Var*>();
+          vars->emplace_back(Var::build_var(dflt, arg->get_type()));
+          ptr->insert(std::make_pair(dest, vars));
+        }
+        
+      }
+    }
+    
     argparse::Values vals(ptr);
     return vals;
   }

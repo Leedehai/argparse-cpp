@@ -115,6 +115,80 @@ TEST(Parser, nargs_asterisk) {
   EXPECT_EQ("r1", v3.get("b"));
 }
 
+class ParserNargsQuestion : public ::testing::Test {
+public:
+  argparse::Parser *psr;
+  argparse::Argument *arg;
+  virtual void SetUp() {
+    psr = new argparse::Parser("test");
+    arg = &(psr->add_argument("-a").nargs("?")); // 0 or 1 value
+    psr->add_argument("-b");
+  }
+  
+  virtual void TearDown() { delete psr; }
+};
+
+TEST_F(ParserNargsQuestion, ok0) {
+  argparse::Argv seq = {"./test"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_FALSE(v.is_set("a"));
+  EXPECT_EQ(0, v.size("a"));
+  EXPECT_FALSE(v.is_set("b"));
+}
+
+TEST_F(ParserNargsQuestion, ok1) {
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(1, v.size("a"));
+  EXPECT_FALSE(v.is_set("b"));
+}
+
+TEST_F(ParserNargsQuestion, ok2) {
+  argparse::Argv seq = {"./test", "-a", "v1"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(1, v.size("a"));
+  EXPECT_EQ("v1", v["a"]);
+  EXPECT_FALSE(v.is_set("b"));
+}
+
+TEST_F(ParserNargsQuestion, ok3) {
+  argparse::Argv seq = {"./test", "-a", "v1", "-b", "r1"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(1, v.size("a"));
+  EXPECT_EQ("v1", v["a"]);
+  EXPECT_TRUE(v.is_set("b"));
+}
+
+TEST_F(ParserNargsQuestion, with_default1) {
+  arg->set_default("d");
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(1, v.size("a"));
+  EXPECT_EQ("d", v["a"]);
+}
+
+TEST_F(ParserNargsQuestion, with_default2) {
+  arg->set_default("d");
+  argparse::Argv seq = {"./test"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(1, v.size("a"));
+  EXPECT_EQ("d", v["a"]);
+}
+
+TEST_F(ParserNargsQuestion, with_const) {
+  arg->set_const("c");
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(1, v.size("a"));
+  EXPECT_EQ("c", v["a"]);
+}
+
 TEST(Parser, name2) {
   argparse::Parser *psr = new argparse::Parser("test");
   psr->add_argument("-a").name("--action");

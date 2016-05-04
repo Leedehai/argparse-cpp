@@ -176,6 +176,8 @@ namespace argparse {
     const std::string& get_dest() const {
       return (this->dest_.empty() ? this->name_ : this->dest_);
     }
+    const std::string& get_default() const { return this->default_; }
+    ArgType get_type() const { return this->type_; }
   };
   
   
