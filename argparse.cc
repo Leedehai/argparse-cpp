@@ -164,13 +164,6 @@ namespace argparse {
     } else if (argc == 0) { // If no argument,
       std::string value;
       
-      // Use if default_ or const_ is set
-      if (! this->default_.empty()) {
-        value = this->default_;
-      } else if (! this->const_.empty()) {
-        value = this->const_;
-      }
-      
       if (value.empty()) {
         // No arguments and default values
         if (this->nargs_ == Nargs::PLUS) {
@@ -179,11 +172,16 @@ namespace argparse {
           assert(this->nargs_num_ == 1);
           err << "option '" << this->name_ << "' must have 1 arguments";
         } else if (this->nargs_ == Nargs::QUESTION) {
-          vars.emplace_back(new argparse_internal::VarNull());
+          if (this->const_.empty()) {
+            vars.emplace_back(new argparse_internal::VarNull());
+          } else {
+            vars.emplace_back(argparse_internal::Var::build_var(this->const_,
+                                                                this->type_));
+          }
         }
       } else {
         vars.emplace_back(argparse_internal::Var::build_var(value,
-                                                               this->type_));
+                                                            this->type_));
       }
     }
     
@@ -636,13 +634,18 @@ namespace argparse_internal {
     // Setting default value if missing option.
     for (auto it : this->argmap_) {
       auto arg = (it.second);
-      const std::string& dflt = arg->get_default();
-      if (! dflt.empty()) {
+      const std::string& v_default = arg->get_default();
+      std::string val;
+      if (! v_default.empty()) {
+        val = v_default;
+      }
+      
+      if (!val.empty()) {
         const std::string& dest = arg->get_dest();
         if (ptr->find(dest) == ptr->end()) {
           // The option has default and was not specified in argument.
           auto vars = new std::vector<Var*>();
-          vars->emplace_back(Var::build_var(dflt, arg->get_type()));
+          vars->emplace_back(Var::build_var(val, arg->get_type()));
           ptr->insert(std::make_pair(dest, vars));
         }
         

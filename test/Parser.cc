@@ -168,7 +168,6 @@ TEST_F(ParserNargsQuestion, with_default1) {
   argparse::Values v = psr->parse_args(seq);
   EXPECT_TRUE(v.is_set("a"));
   EXPECT_EQ(1, v.size("a"));
-  EXPECT_EQ("d", v["a"]);
 }
 
 TEST_F(ParserNargsQuestion, with_default2) {
@@ -197,6 +196,83 @@ TEST_F(ParserNargsQuestion, with_default_and_const) {
   EXPECT_EQ(1, v.size("a"));
   // 'const' has priority over 'default'
   EXPECT_EQ("c", v["a"]);
+}
+
+class ParserNargsPlus : public ::testing::Test {
+public:
+  argparse::Parser *psr;
+  argparse::Argument *arg;
+  virtual void SetUp() {
+    psr = new argparse::Parser("test");
+    arg = &(psr->add_argument("-a").nargs("+")); // 0 or 1 value
+    psr->add_argument("-b");
+  }
+  
+  virtual void TearDown() { delete psr; }
+};
+
+TEST_F(ParserNargsPlus, ok0) {
+  argparse::Argv seq = {"./test"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_FALSE(v.is_set("a"));
+  EXPECT_EQ(0, v.size("a"));
+  EXPECT_FALSE(v.is_set("b"));
+}
+
+TEST_F(ParserNargsPlus, ok1) {
+  argparse::Argv seq = {"./test", "-a", "v1"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(1, v.size("a"));
+  EXPECT_EQ("v1", v.get("a", 0));
+  EXPECT_FALSE(v.is_set("b"));
+}
+
+TEST_F(ParserNargsPlus, ok2) {
+  argparse::Argv seq = {"./test", "-a", "v1", "v2"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(2, v.size("a"));
+  EXPECT_EQ("v1", v.get("a", 0));
+  EXPECT_EQ("v2", v.get("a", 1));
+  EXPECT_FALSE(v.is_set("b"));
+}
+
+TEST_F(ParserNargsPlus, ok3) {
+  argparse::Argv seq = {"./test", "-a", "v1", "v2", "v3", "-b", "r1"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(3, v.size("a"));
+  EXPECT_EQ("v1", v.get("a", 0));
+  EXPECT_EQ("v2", v.get("a", 1));
+  EXPECT_EQ("v3", v.get("a", 2));
+  EXPECT_TRUE(v.is_set("b"));
+}
+
+TEST_F(ParserNargsPlus, ng_no_argument1) {
+  argparse::Argv seq = {"./test", "-a"};
+  EXPECT_THROW(psr->parse_args(seq), argparse::exception::ParseError);
+}
+
+TEST_F(ParserNargsPlus, ng_no_argument2) {
+  argparse::Argv seq = {"./test", "-a", "-b", "r1"};
+  EXPECT_THROW(psr->parse_args(seq), argparse::exception::ParseError);
+}
+
+TEST_F(ParserNargsPlus, with_default1) {
+  arg->set_default("d");
+  argparse::Argv seq = {"./test", "-a", "v1", "-b", "r1"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_EQ(1, v.size("a"));
+  EXPECT_EQ("v1", v["a"]);
+}
+
+TEST_F(ParserNargsPlus, with_default2) {
+  arg->set_default("d");
+  argparse::Argv seq = {"./test", "-b", "r1"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_EQ(1, v.size("a"));
+  EXPECT_EQ("d", v["a"]);
 }
 
 
