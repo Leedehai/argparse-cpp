@@ -35,49 +35,69 @@
 #include "./gtest.h"
 #include "../argparse.hpp"
 
+class ParserNargsNumber : public ::testing::Test {
+public:
+  argparse::Parser *psr;
+  argparse::Argument *arg;
+  virtual void SetUp() {
+    psr = new argparse::Parser("test");
+    arg = &(psr->add_argument("-a").nargs(2));
+    psr->add_argument("-b");
+  }
+  
+  virtual void TearDown() { delete psr; }
+};
 
-TEST(Parser, nargs1) {
-  argparse::Parser *psr = new argparse::Parser("test");
-  psr->add_argument("-a").nargs(1);
-  argparse::Argv args1 = {"./test", "-a", "v"};
-  argparse::Argv args2 = {"./test", "-a", "v", "w"};
-  
-  argparse::Values val = psr->parse_args(args1);
-  EXPECT_EQ(val.get("a"), "v");
-  EXPECT_THROW(val.get("a", 1), argparse::exception::IndexError);
-  
-  EXPECT_THROW(psr->parse_args(args2), argparse::exception::ParseError);
+
+TEST_F(ParserNargsNumber, ok1) {
+  argparse::Argv seq = {"./test", "-a", "v1", "v2"};
+  argparse::Values val = psr->parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(2, val.size("a"));
+  EXPECT_EQ("v1", val.get("a", 0));
+  EXPECT_EQ("v2", val.get("a", 1));
 }
 
-TEST(Parser, nargs2) {
-  argparse::Parser *psr = new argparse::Parser("test");
-  psr->add_argument("-a").nargs(2);
-  argparse::Argv args1 = {"./test", "-a", "v"};
-  argparse::Argv args2 = {"./test", "-a", "v", "w"};
-  argparse::Argv args3 = {"./test", "-a", "v", "w", "x"};
-  
-  argparse::Values val = psr->parse_args(args2);
-  EXPECT_EQ(val.get("a"), "v");
-  EXPECT_EQ(val.get("a", 0), "v");
-  EXPECT_EQ(val.get("a", 1), "w");
-  EXPECT_THROW(val.get("a", 2), argparse::exception::IndexError);
-  
-  EXPECT_THROW(psr->parse_args(args1), argparse::exception::ParseError);
-  EXPECT_THROW(psr->parse_args(args3), argparse::exception::ParseError);
+TEST_F(ParserNargsNumber, ng1_too_many_arg) {
+  argparse::Argv seq = {"./test", "-a", "v1", "v2", "v3"};
+  EXPECT_THROW(psr->parse_args(seq), argparse::exception::ParseError);
 }
 
-TEST(Parser, nargs_asterisk) {
-  argparse::Parser *psr = new argparse::Parser("test");
-  psr->add_argument("-a").nargs("*");
-  psr->add_argument("-b");
+TEST_F(ParserNargsNumber, ng2_not_enough_arg) {
+  argparse::Argv seq = {"./test", "-a", "v1"};
+  EXPECT_THROW(psr->parse_args(seq), argparse::exception::ParseError);
+}
+
+
+
+class ParserNargsAsterisk : public ::testing::Test {
+public:
+  argparse::Parser *psr;
+  argparse::Argument *arg;
+  virtual void SetUp() {
+    psr = new argparse::Parser("test");
+    arg = &(psr->add_argument("-a").nargs("*"));
+    psr->add_argument("-b");
+  }
   
-  // Stop parsing by end of arguments.
+  virtual void TearDown() { delete psr; }
+};
+
+TEST_F(ParserNargsAsterisk, no_option) {
+  argparse::Argv ok1 = {"./test"};
+  argparse::Values v1 = psr->parse_args(ok1);
+  EXPECT_FALSE(v1.is_set("a"));
+}
+
+TEST_F(ParserNargsAsterisk, ok1) {
   argparse::Argv ok1 = {"./test", "-a", "v1", "v2"};
   argparse::Values v1 = psr->parse_args(ok1);
   EXPECT_EQ(2, v1.size("a"));
   EXPECT_EQ("v1", v1.get("a", 0));
   EXPECT_EQ("v2", v1.get("a", 1));
-  
+}
+
+TEST_F(ParserNargsAsterisk, ok2) {
   // Stop parsing by an other option.
   argparse::Argv ok2 = {"./test", "-a", "v1", "v2", "-b", "r1"};
   argparse::Values v2 = psr->parse_args(ok2);
@@ -86,7 +106,9 @@ TEST(Parser, nargs_asterisk) {
   EXPECT_EQ("v2", v2.get("a", 1));
   EXPECT_EQ(1, v2.size("b"));
   EXPECT_EQ("r1", v2.get("b"));
-  
+}
+
+TEST_F(ParserNargsAsterisk, ok3) {
   // No option value.
   argparse::Argv ok3 = {"./test", "-a", "-b", "r1"};
   argparse::Values v3 = psr->parse_args(ok3);
@@ -95,6 +117,9 @@ TEST(Parser, nargs_asterisk) {
   EXPECT_EQ(1, v3.size("b"));
   EXPECT_EQ("r1", v3.get("b"));
 }
+
+
+
 
 class ParserNargsQuestion : public ::testing::Test {
 public:
