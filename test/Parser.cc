@@ -189,6 +189,17 @@ TEST_F(ParserNargsQuestion, with_const) {
   EXPECT_EQ("c", v["a"]);
 }
 
+TEST_F(ParserNargsQuestion, with_default_and_const) {
+  arg->set_const("c").set_default("d");
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values v = psr->parse_args(seq);
+  EXPECT_TRUE(v.is_set("a"));
+  EXPECT_EQ(1, v.size("a"));
+  // 'const' has priority over 'default'
+  EXPECT_EQ("c", v["a"]);
+}
+
+
 TEST(Parser, name2) {
   argparse::Parser *psr = new argparse::Parser("test");
   psr->add_argument("-a").name("--action");
