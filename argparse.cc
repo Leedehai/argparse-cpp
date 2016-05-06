@@ -483,10 +483,12 @@ namespace argparse {
   // argparse::Parser
   //
   Parser::Parser(const std::string &prog_name)
-  : prog_name_(prog_name), proc_(new argparse_internal::ArgumentProcessor()) {
+  : prog_name_(prog_name), proc_(new argparse_internal::ArgumentProcessor()),
+    output_(&std::cout) {
   }
   Parser::Parser()
-  : prog_name_("(none)"), proc_(new argparse_internal::ArgumentProcessor()) {
+  : prog_name_("(none)"), proc_(new argparse_internal::ArgumentProcessor()),
+    output_(&std::cout){
   }
   Parser::~Parser() {
     delete this->proc_;
@@ -509,6 +511,20 @@ namespace argparse {
     
     return this->parse_args(args);
   }
+  
+  void Parser::usage() const {
+    this->proc_->usage(this->prog_name_, this->output_);
+  }
+  
+  void Parser::help() const {
+    this->usage();
+    
+  }
+  
+  void Parser::set_output(std::ostream *output) {
+    this->output_ = output;
+  }
+
   
   // ========================================================
   // argparse::Values
@@ -823,6 +839,41 @@ namespace argparse_internal {
     return vals;
   }
 
+  void ArgumentProcessor::handle_usage_line(const argparse::Argument& arg,
+                                            const std::string& tab,
+                                            std::stringstream *buf,
+                                            std::ostream *out) {
+    std::string usage = arg.usage();
+    if (buf->str().length() + usage.length() + 1 > 80) {
+      *out << buf->str() << std::endl;
+      buf->str(tab);
+    }
+    
+    if (arg.get_required() ||
+        arg.get_format() == argparse::ArgFormat::sequence) {
+      (*buf) << " " << usage;
+    } else {
+      (*buf) << " [" << usage << "]";
+    }
+  }
   
+  void ArgumentProcessor::usage(const std::string& prog_name,
+                                std::ostream *out) const {
+    std::stringstream ss, tab;
+    ss << "usage: " << prog_name ;
+    for (size_t i = 0; i < ss.str().length() + 1; i++) {
+      tab << " ";
+    }
+    
+    for (auto it : this->argmap_) {
+      handle_usage_line(*(it.second), tab.str(), &ss, out);
+    }
+
+    for (size_t n = 0; n < this->argvec_.size(); n++) {
+      handle_usage_line(*(this->argvec_[n]), tab.str(), &ss, out);
+    }
+    
+    *out << ss.str();
+  }
   
 }

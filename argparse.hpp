@@ -172,6 +172,7 @@ namespace argparse {
     Argument& metavar(const std::string& v_metavar);
     Argument& dest(const std::string& v_dest);
     
+    ArgFormat get_format() const { return this->arg_format_; }
     const std::string& get_name() const { return this->name_; }
     Action get_action() const { return this->action_; }
     const std::string& get_dest() const {
@@ -184,6 +185,7 @@ namespace argparse {
     const std::string& get_const() const { return this->const_; }
     const std::string& get_default() const { return this->default_; }
     ArgType get_type() const { return this->type_; }
+    bool get_required() const { return this->required_; }
     const std::string& get_help() const { return this->help_; }
     
     void check_consistency() const;
@@ -197,6 +199,7 @@ namespace argparse {
     std::string prog_name_;
     std::string version_;
     argparse_internal::ArgumentProcessor *proc_;
+    std::ostream *output_;
     
   public:
     Parser(const std::string &prog_name);
@@ -204,10 +207,13 @@ namespace argparse {
     ~Parser();
     Parser(const Parser& obj) = delete;
 
-    Parser& usage(const std::string& s);
     Argument& add_argument(const std::string &name);
     Values parse_args(const Argv& args) const;
     Values parse_args(int argc, char *argv[]) const;
+    void usage() const;
+    void help() const;
+    
+    void set_output(std::ostream *output);
   };
 
   typedef std::map<const std::string,
@@ -344,6 +350,10 @@ namespace argparse_internal {
     size_t parse_option(const argparse::Argv& args, size_t idx,
                         const std::string& optkey,
                         argparse::VarMap *varmap) const;
+    static void handle_usage_line(const argparse::Argument& arg,
+                                  const std::string& tab,
+                                  std::stringstream *buf, std::ostream *out);
+
   public:
     ArgumentProcessor() = default;
     ~ArgumentProcessor() = default;
@@ -354,6 +364,8 @@ namespace argparse_internal {
     void insert_sequence(argparse::Argument *arg);
 
     argparse::Values parse_args(const argparse::Argv& args) const;
+    void usage(const std::string& prog_name, std::ostream *out) const;
+    void help(std::ostream *out) const;
   };
   
 }
