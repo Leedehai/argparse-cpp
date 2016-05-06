@@ -348,13 +348,24 @@ namespace argparse {
       // Checking if nargs is set for store_const or append_const.
       // nargs should not be modified.
       if (this->nargs_ != Nargs::NUMBER || this->nargs_num_ != 1) {
-        std::string msg = "store_const and append_const are "
-        "required 'const' parameter";
+        std::string msg = "store_const and append_const support only 1 argument ";
         throw argparse::exception::ConfigureError(msg, this->name_);
       }
     }
     
 
+    if ((this->action_ == Action::store_true ||
+         this->action_ == Action::store_false)) {
+      if (! this->const_.empty()) {
+        std::string msg = "store_true and store_false do not support 'const'";
+        throw argparse::exception::ConfigureError(msg, this->name_);
+      }
+
+      if (this->nargs_ != Nargs::NUMBER || this->nargs_num_ != 1) {
+        std::string msg = "store_true and store_false support only 1 argument";
+        throw argparse::exception::ConfigureError(msg, this->name_);
+      }
+    }
   }
 
   // ========================================================
@@ -520,9 +531,9 @@ namespace argparse_internal {
   const std::string VarBool::false_("false");
 
   VarBool::VarBool(const std::string& val) {
-    if (val == "true") {
+    if (val == VarBool::true_) {
       this->value_ = true;
-    } else if (val == "false") {
+    } else if (val == VarBool::false_) {
       this->value_ = false;
     } else {
       this->err_stream() << "Invalid bool format: " << val << ", " <<
@@ -671,21 +682,42 @@ namespace argparse_internal {
     // Setting default value if missing option.
     for (auto it : this->argmap_) {
       auto arg = (it.second);
-      const std::string& v_default = arg->get_default();
-      std::string val;
-      if (! v_default.empty()) {
-        val = v_default;
+      const std::string& dest = arg->get_dest();
+      
+      if (ptr->find(dest) == ptr->end()) {
+        // Value is not set.
+        
+        if (arg->get_action() == argparse::Action::append ||
+            arg->get_action() == argparse::Action::store ||
+            arg->get_action() == argparse::Action::store_true ||
+            arg->get_action() == argparse::Action::store_false) {
+          // 'append' and 'store' can use default value,
+          const std::string& v_default = arg->get_default();
+      
+          if (!v_default.empty()) {
+            // The option has default and was not specified in argument.
+            auto vars = new std::vector<Var*>();
+            vars->emplace_back(Var::build_var(v_default, arg->get_type()));
+            ptr->insert(std::make_pair(dest, vars));
+          }
+        }
       }
       
-      if (!val.empty()) {
-        const std::string& dest = arg->get_dest();
-        if (ptr->find(dest) == ptr->end()) {
-          // The option has default and was not specified in argument.
+      // If still values are not set.
+      if (ptr->find(dest) == ptr->end()) {
+        if (arg->get_action() == argparse::Action::store_true) {
+          // put false because of no store_true argument.
           auto vars = new std::vector<Var*>();
-          vars->emplace_back(Var::build_var(val, arg->get_type()));
+          vars->emplace_back(Var::build_var("false", argparse::ArgType::BOOL));
           ptr->insert(std::make_pair(dest, vars));
         }
         
+        if (arg->get_action() == argparse::Action::store_false) {
+          // put true because of no store_false argument.
+          auto vars = new std::vector<Var*>();
+          vars->emplace_back(Var::build_var("true", argparse::ArgType::BOOL));
+          ptr->insert(std::make_pair(dest, vars));
+        }
       }
     }
     

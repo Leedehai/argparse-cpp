@@ -106,4 +106,131 @@ TEST_F(ParserActionStoreConst, ng_duplicated_option) {
 }
 
 
+class ParserActionStoreTrue : public ParserAction {
+public:
+  virtual void SetUp() {
+    arg = &(psr.add_argument("-a").action("store_true"));
+  }
+};
 
+TEST_F(ParserActionStoreTrue, ok_put_true) {
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("true", val["a"]);
+  EXPECT_TRUE(val.is_true("a"));
+}
+
+
+TEST_F(ParserActionStoreTrue, ok_put_false_if_no_arg) {
+  argparse::Argv seq = {"./test"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("false", val["a"]);
+  EXPECT_FALSE(val.is_true("a"));
+}
+
+TEST_F(ParserActionStoreTrue, ok_with_default) {
+  arg->set_default("v");
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("true", val["a"]);
+  EXPECT_TRUE(val.is_true("a"));
+}
+
+TEST_F(ParserActionStoreTrue, ok_with_default_and_no_arg) {
+  // use default value when no argument even if it's not boolean.
+  arg->set_default("v");
+  argparse::Argv seq = {"./test"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("v", val["a"]);
+}
+
+TEST_F(ParserActionStoreTrue, ng_with_const) {
+  arg->set_const("c");
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ConfigureError);
+}
+
+TEST_F(ParserActionStoreTrue, ng_with_modified_nargs1) {
+  arg->nargs("*");
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ConfigureError);
+}
+
+TEST_F(ParserActionStoreTrue, ng_with_modified_nargs2) {
+  arg->nargs(2);
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ConfigureError);
+}
+
+
+
+class ParserActionStoreFalse : public ParserAction {
+public:
+  virtual void SetUp() {
+    arg = &(psr.add_argument("-a").action("store_false"));
+  }
+};
+
+TEST_F(ParserActionStoreFalse, ok_put_false) {
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("false", val["a"]);
+  EXPECT_FALSE(val.is_true("a"));
+}
+
+TEST_F(ParserActionStoreFalse, ok_put_true_if_no_arg) {
+  argparse::Argv seq = {"./test"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("true", val["a"]);
+  EXPECT_TRUE(val.is_true("a"));
+}
+
+TEST_F(ParserActionStoreFalse, ok_with_default) {
+  arg->set_default("v");
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("false", val["a"]);
+  EXPECT_FALSE(val.is_true("a"));
+}
+
+TEST_F(ParserActionStoreFalse, ok_with_default_and_no_arg) {
+  // use default value when no argument even if it's not boolean.
+  arg->set_default("v");
+  argparse::Argv seq = {"./test"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("v", val["a"]);
+}
+
+TEST_F(ParserActionStoreFalse, ng_with_const) {
+  arg->set_const("c");
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ConfigureError);
+}
+
+TEST_F(ParserActionStoreFalse, ng_with_modified_nargs1) {
+  arg->nargs("*");
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ConfigureError);
+}
+
+TEST_F(ParserActionStoreFalse, ng_with_modified_nargs2) {
+  arg->nargs(2);
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ConfigureError);
+}
