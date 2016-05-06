@@ -37,3 +37,5 @@ ADD_LIBRARY(argparse SHARED ${BASESRCS})
 ADD_EXECUTABLE(argparse-test ${TESTSRCS})
 TARGET_LINK_LIBRARIES(argparse-test argparse)
 
+ADD_EXECUTABLE(argparse-example example.cc)
+TARGET_LINK_LIBRARIES(argparse-example argparse)
