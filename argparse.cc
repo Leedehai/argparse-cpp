@@ -74,7 +74,6 @@ namespace argparse {
     {"append_const", Action::append_const},
     {"count",        Action::count},
     {"help",         Action::help},
-    {"version",      Action::version},
   };
 
   Argument::Argument(argparse_internal::ArgumentProcessor *proc)
@@ -234,7 +233,6 @@ namespace argparse {
         break;
         
       case Action::help:
-      case Action::version:
         assert(0);
         break;
         // TODO:

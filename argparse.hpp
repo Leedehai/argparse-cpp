@@ -55,7 +55,6 @@ namespace argparse {
     append_const,
     count,
     help,
-    version,
   };
   
   
