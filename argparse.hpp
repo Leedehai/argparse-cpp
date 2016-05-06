@@ -143,6 +143,7 @@ namespace argparse {
     
     size_t parse_append(const Argv& args, size_t idx,
                         std::vector<argparse_internal::Var*> *opt_list) const;
+    static void handle_count(std::vector<argparse_internal::Var*> *opt_list);
     static std::string extract_opt_name(const std::string& name);
     
     static const std::map<const std::string, Action> ACTION_MAP_;
@@ -290,6 +291,13 @@ namespace argparse_internal {
     ~VarInt() = default;
     const std::string& to_s() const override { return this->str_; }
     int to_i() const override { return this->value_; }
+    
+    void increment() {
+      this->value_++;
+      std::stringstream ss;
+      ss << this->value_;
+      this->str_ = ss.str();
+    }
   };
 
   class VarStr : public Var {

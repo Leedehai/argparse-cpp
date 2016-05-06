@@ -230,6 +230,9 @@ namespace argparse {
         break;
 
       case Action::count:
+        handle_count(opt_list);
+        break;
+        
       case Action::help:
       case Action::version:
         assert(0);
@@ -245,7 +248,23 @@ namespace argparse {
     return r_idx;
   }
   
-  
+  void Argument::handle_count(std::vector<argparse_internal::Var*> *opt_list) {
+    argparse_internal::Var* var = nullptr;
+    if (opt_list->size() == 0) {
+      var = argparse_internal::Var::build_var("0", ArgType::INT);
+      opt_list->push_back(var);
+    } else {
+      var = (*opt_list)[0];
+    }
+    assert(var != nullptr);
+    assert(opt_list->size() == 1);
+ 
+
+    argparse_internal::VarInt* varint =
+      dynamic_cast<argparse_internal::VarInt*>(var);
+    varint->increment();
+  }
+
   Argument& Argument::action(const std::string& action) {
     auto ait = Argument::ACTION_MAP_.find(action);
     if (ait == Argument::ACTION_MAP_.end()) {
@@ -253,6 +272,10 @@ namespace argparse {
                                       this->name_);
     }
     this->action_ = ait->second;
+    
+    if (this->action_ == Action::count) {
+      this->type_ = ArgType::INT;
+    }
     return *this;
   }
 
@@ -355,6 +378,12 @@ namespace argparse {
       }
     }
     
+    if (this->action_ == Action::count) {
+      if (this->type_ != ArgType::INT) {
+        throw argparse::exception::ConfigureError("action 'count' must have "
+                                                  "'int' type", this->name_);
+      }
+    }
 
     if ((this->action_ == Action::store_true ||
          this->action_ == Action::store_false)) {
@@ -566,7 +595,8 @@ namespace argparse_internal {
     
     if (vit != varmap->end()) {
       if (argument->get_action() != argparse::Action::append &&
-          argument->get_action() != argparse::Action::append_const) {
+          argument->get_action() != argparse::Action::append_const &&
+          argument->get_action() != argparse::Action::count) {
           throw argparse::exception::ParseError("duplicated option, " + optkey);
       }
       
