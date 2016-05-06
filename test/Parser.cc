@@ -73,7 +73,7 @@ TEST(Parser, name2) {
   EXPECT_THROW(psr->parse_args(ng1), argparse::exception::ParseError);
 }
 
-TEST(Parser, help) {
+TEST(Parser, usage1) {
   argparse::Parser psr("test");
   psr.add_argument("-a");
   psr.add_argument("-b").nargs("+");
@@ -83,4 +83,15 @@ TEST(Parser, help) {
   psr.set_output(&out);
   psr.usage();
   EXPECT_EQ("usage: test [-a VAL] [-b VAL [VAL ...]] x y", out.str());
+}
+
+TEST(Parser, usage2) {
+  argparse::Parser psr("test");
+  psr.add_argument("-n").metavar("X").required(true);
+  psr.add_argument("-m").nargs(2);
+  psr.add_argument("r").nargs(2);
+  std::stringstream out;
+  psr.set_output(&out);
+  psr.usage();
+  EXPECT_EQ("usage: test [-m VAL1 VAL2] -n X r1 r2", out.str());
 }

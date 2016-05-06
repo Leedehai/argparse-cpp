@@ -318,7 +318,8 @@ namespace argparse {
     } else if (v_nargs == "+") {
       this->nargs_ = Nargs::PLUS;
     } else {
-      throw exception::ParseError("Invalid argument: " + v_nargs);
+      throw exception::ConfigureError("Invalid argument: " + v_nargs,
+                                      this->name_);
     }
 
     this->nargs_num_ = 0;
@@ -426,44 +427,51 @@ namespace argparse {
         usage = this->name_;
       }
     }
+
+    std::stringstream ss;
+    std::string meta;
     
     if (this->arg_format_ == ArgFormat::option) {
-      std::stringstream ss;
       ss << ((arg_name.length() > 1) ? "--" : "-") << arg_name;
-      
-      if (this->action_ == Action::store || this->action_ == Action::append) {
-        const std::string& meta = ((this->metavar_.empty()) ? "VAL" :
-                                   this->metavar_);
-        
-        switch (this->nargs_) {
-          case Nargs::ASTERISK:
-            ss << " [" << meta << " [" << meta << " ...]]";
-            break;
-            
-          case Nargs::QUESTION:
-            ss << " [" << meta << "]";
-            break;
-            
-          case Nargs::PLUS:
-            ss << " " << meta << " [" << meta << " ...]";
-            break;
-            
-          case Nargs::NUMBER:
-            if (this->nargs_num_ > 1) {
-              for (size_t i = 0; i < this->nargs_num_; i++) {
-                ss << " " << meta << (i + 1);
-              }
-            } else {
-              ss << " " << meta;
-            }
-            break;
-        }
-      }
-      
-      usage = ss.str();
+      meta = ((this->metavar_.empty()) ? "VAL" : this->metavar_);
+    } else {
+      meta = ((this->metavar_.empty()) ? usage : this->metavar_);
     }
     
-    return usage;
+    if (this->action_ == Action::store || this->action_ == Action::append) {
+      if (ss.str().length() > 0) {
+        ss << " ";
+      }
+      
+      switch (this->nargs_) {
+        case Nargs::ASTERISK:
+          ss << "[" << meta << " [" << meta << " ...]]";
+          break;
+          
+        case Nargs::QUESTION:
+          ss << "[" << meta << "]";
+          break;
+          
+        case Nargs::PLUS:
+          ss << meta << " [" << meta << " ...]";
+          break;
+          
+        case Nargs::NUMBER:
+          if (this->nargs_num_ > 1) {
+            for (size_t i = 0; i < this->nargs_num_; i++) {
+              ss << meta << (i + 1);
+              if (i < this->nargs_num_ - 1) {
+                ss << " ";
+              }
+            }
+          } else {
+            ss << meta;
+          }
+          break;
+      }
+    }
+    
+    return ss.str();
   }
 
   std::string Argument::usage() const {
