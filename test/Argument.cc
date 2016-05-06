@@ -39,8 +39,7 @@ TEST(Argument, basic) {
   std::vector<const std::string> seq = {"a", "b"};
 
   argparse_internal::ArgumentProcessor proc;
-  argparse::Argument arg(&proc);
-  arg.nargs(1);
+  auto arg = proc.add_argument("test").nargs(1);
   
   std::vector<argparse_internal::Var*> options;
   size_t idx = arg.parse(seq, 0, &options);
@@ -58,10 +57,7 @@ TEST(Argument, Integer) {
   
   std::vector<argparse_internal::Var*> options1, options2, options3, options4;
   argparse_internal::ArgumentProcessor proc;
-  argparse::Argument arg(&proc);
-  arg.set_name("test");
-  arg.nargs(1);
-  arg.type(argparse::ArgType::INT);
+  auto arg = proc.add_argument("test").nargs(1).type(argparse::ArgType::INT);
   
   size_t r1 = arg.parse(seq_ok1, 0, &options1);
   EXPECT_EQ(1, r1);
@@ -77,5 +73,96 @@ TEST(Argument, Integer) {
                argparse::exception::ParseError);
 }
 
+TEST(Argument, help) {
+  argparse_internal::ArgumentProcessor proc;
+  argparse::Argument arg(&proc);
+  arg.help("save us");
+  EXPECT_EQ("save us", arg.get_help());
+}
 
+class ArgumentUsage : public ::testing::Test {
+public:
+  argparse_internal::ArgumentProcessor proc;
+  argparse::Argument *arg;
+  virtual void SetUp() {
+    arg = &(this->proc.add_argument("-a"));
+  }
+  virtual void TearDown() {
+  }
+};
+
+TEST_F(ArgumentUsage, store_with_one) {
+  EXPECT_EQ("-a VAL", arg->usage());
+  EXPECT_TRUE(arg->usage2().empty());
+}
+
+TEST_F(ArgumentUsage, store_with_three) {
+  arg->nargs(3);
+  
+  EXPECT_EQ("-a VAL1 VAL2 VAL3", arg->usage());
+}
+
+TEST_F(ArgumentUsage, store_with_asterisk) {
+  arg->nargs("*");
+  
+  EXPECT_EQ("-a [VAL [VAL ...]]", arg->usage());
+}
+
+TEST_F(ArgumentUsage, store_with_question) {
+  arg->nargs("?");
+  
+  EXPECT_EQ("-a [VAL]", arg->usage());
+}
+
+TEST_F(ArgumentUsage, store_with_plus) {
+  arg->nargs("+");
+  EXPECT_EQ("-a VAL [VAL ...]", arg->usage());
+}
+
+TEST_F(ArgumentUsage, store_with_metavar) {
+  arg->nargs("+").metavar("A");
+  EXPECT_EQ("-a A [A ...]", arg->usage());
+}
+
+TEST_F(ArgumentUsage, store_true) {
+  arg->action("store_true");
+  EXPECT_EQ("-a", arg->usage());
+}
+
+TEST_F(ArgumentUsage, store_false) {
+  arg->action("store_false");
+  EXPECT_EQ("-a", arg->usage());
+}
+
+TEST_F(ArgumentUsage, append) {
+  arg->action("append");
+  EXPECT_EQ("-a VAL", arg->usage());
+}
+
+TEST_F(ArgumentUsage, append_const) {
+  arg->action("append_const");
+  EXPECT_EQ("-a", arg->usage());
+}
+
+TEST_F(ArgumentUsage, count) {
+  arg->action("count");
+  EXPECT_EQ("-a", arg->usage());
+}
+
+TEST_F(ArgumentUsage, name_2nd) {
+  arg->name("--aim");
+  EXPECT_EQ("-a VAL", arg->usage());
+  EXPECT_EQ("--aim VAL", arg->usage2());
+}
+
+TEST_F(ArgumentUsage, seq_name) {
+  argparse::Argument& arg2 = proc.add_argument("b");
+  EXPECT_EQ("b", arg2.usage());
+}
+
+TEST_F(ArgumentUsage, seq_metavar) {
+  argparse::Argument& arg2 = proc.add_argument("b");
+  arg2.metavar("ALPHA");
+  EXPECT_EQ("ALPHA", arg2.usage());
+}
 

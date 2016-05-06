@@ -144,6 +144,7 @@ namespace argparse {
                         std::vector<argparse_internal::Var*> *opt_list) const;
     static void handle_count(std::vector<argparse_internal::Var*> *opt_list);
     static std::string extract_opt_name(const std::string& name);
+    std::string build_usage(const std::string& arg_name) const;
     
     static const std::map<const std::string, Action> ACTION_MAP_;
     
@@ -183,8 +184,11 @@ namespace argparse {
     const std::string& get_const() const { return this->const_; }
     const std::string& get_default() const { return this->default_; }
     ArgType get_type() const { return this->type_; }
+    const std::string& get_help() const { return this->help_; }
     
     void check_consistency() const;
+    std::string usage() const;
+    std::string usage2() const;
   };
   
   
@@ -201,7 +205,6 @@ namespace argparse {
     Parser(const Parser& obj) = delete;
 
     Parser& usage(const std::string& s);
-    Parser& version(const std::string& version);
     Argument& add_argument(const std::string &name);
     Values parse_args(const Argv& args) const;
     Values parse_args(int argc, char *argv[]) const;

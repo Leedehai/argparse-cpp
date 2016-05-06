@@ -29,6 +29,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <iostream>
+
 #include <assert.h>
 #include "argparse.hpp"
 
@@ -124,6 +126,20 @@ namespace argparse {
     } else {
       this->name_ = opt_name;
       this->arg_format_ = ArgFormat::option;
+    }
+    
+    switch (this->arg_format_) {
+      case argparse::ArgFormat::option:
+        this->proc_->insert_option(this->name_, this);
+        break;
+        
+      case argparse::ArgFormat::sequence:
+        this->proc_->insert_sequence(this);
+        break;
+        
+      case argparse::ArgFormat::undef:
+        assert(0);
+        break;
     }
     
     return this->name_;
@@ -342,10 +358,12 @@ namespace argparse {
   }
 
   Argument& Argument::help(const std::string &v_help) {
+    this->help_ = v_help;
     return *this;
   }
 
   Argument& Argument::metavar(const std::string &v_metavar) {
+    this->metavar_ = v_metavar;
     return *this;
   }
 
@@ -397,6 +415,70 @@ namespace argparse {
     }
   }
 
+  std::string Argument::build_usage(const std::string& arg_name) const {
+    std::string usage;
+    if (this->arg_format_ == ArgFormat::sequence) {
+      if (! this->metavar_.empty()) {
+        usage = this->metavar_;
+      } else if (! this->name2_.empty()) {
+        usage = this->name2_;
+      } else {
+        usage = this->name_;
+      }
+    }
+    
+    if (this->arg_format_ == ArgFormat::option) {
+      std::stringstream ss;
+      ss << ((arg_name.length() > 1) ? "--" : "-") << arg_name;
+      
+      if (this->action_ == Action::store || this->action_ == Action::append) {
+        const std::string& meta = ((this->metavar_.empty()) ? "VAL" :
+                                   this->metavar_);
+        
+        switch (this->nargs_) {
+          case Nargs::ASTERISK:
+            ss << " [" << meta << " [" << meta << " ...]]";
+            break;
+            
+          case Nargs::QUESTION:
+            ss << " [" << meta << "]";
+            break;
+            
+          case Nargs::PLUS:
+            ss << " " << meta << " [" << meta << " ...]";
+            break;
+            
+          case Nargs::NUMBER:
+            if (this->nargs_num_ > 1) {
+              for (size_t i = 0; i < this->nargs_num_; i++) {
+                ss << " " << meta << (i + 1);
+              }
+            } else {
+              ss << " " << meta;
+            }
+            break;
+        }
+      }
+      
+      usage = ss.str();
+    }
+    
+    return usage;
+  }
+
+  std::string Argument::usage() const {
+    return this->build_usage(this->name_);
+  }
+
+  std::string Argument::usage2() const {
+    std::string ret;
+    if (! this->name2_.empty()) {
+      ret = this->build_usage(this->name2_);
+    }
+    
+    return ret;
+  }
+  
   // ========================================================
   // argparse::Parser
   //
@@ -611,21 +693,7 @@ namespace argparse_internal {
 
   argparse::Argument& ArgumentProcessor::add_argument(const std::string &name) {
     auto arg = new argparse::Argument(this);
-    const std::string& key = arg->set_name(name);
-    
-    switch (arg->arg_format()) {
-      case argparse::ArgFormat::option:
-        this->insert_option(key, arg);
-        break;
-        
-      case argparse::ArgFormat::sequence:
-        this->insert_sequence(arg);
-        break;
-        
-      case argparse::ArgFormat::undef:
-        assert(0);
-        break;
-    }
+    arg->set_name(name);
     return *arg;
   }
   
