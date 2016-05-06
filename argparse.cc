@@ -71,7 +71,8 @@ namespace argparse {
     {"store_true",   Action::store_true},
     {"store_false",  Action::store_false},
     {"append",       Action::append},
-    {"append_const", Action::count},
+    {"append_const", Action::append_const},
+    {"count",        Action::count},
     {"help",         Action::help},
     {"version",      Action::version},
   };

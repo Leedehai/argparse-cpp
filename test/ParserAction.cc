@@ -274,3 +274,43 @@ TEST_F(ParserActionAppend, ng_no_value) {
   argparse::Argv seq = {"./test", "-a", "-a", "v1"};
   EXPECT_THROW(psr.parse_args(seq), argparse::exception::ParseError);
 }
+
+class ParserActionAppendConst : public ParserAction {
+public:
+  virtual void SetUp() {
+    arg = &(psr.add_argument("-a").action("append_const").set_const("c"));
+  }
+};
+
+TEST_F(ParserActionAppendConst, ok1) {
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("c", val.get("a", 0));
+}
+
+TEST_F(ParserActionAppendConst, ok2) {
+  argparse::Argv seq = {"./test", "-a", "-a"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_EQ(2, val.size("a"));
+  EXPECT_EQ("c", val.get("a", 0));
+  EXPECT_EQ("c", val.get("a", 1));
+}
+
+TEST_F(ParserActionAppendConst, ng_with_argument) {
+  argparse::Argv seq = {"./test", "-a", "v1"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ParseError);
+}
+
+TEST_F(ParserActionAppendConst, ng_with_modified_nargs1) {
+  arg->nargs("*");
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ConfigureError);
+}
+
+TEST_F(ParserActionAppendConst, ng_with_modified_nargs2) {
+  arg->nargs(2);
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ConfigureError);
+}
