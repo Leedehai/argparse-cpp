@@ -329,6 +329,7 @@ namespace argparse {
   }
 
   Argument& Argument::dest(const std::string &v_dest) {
+    this->dest_ = v_dest;
     return *this;
   }
 

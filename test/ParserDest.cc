@@ -35,42 +35,45 @@
 #include "./gtest.h"
 #include "../argparse.hpp"
 
-TEST(Parser, basic_usage) {
-  argparse::Parser *psr = new argparse::Parser("test");
-  argparse::Argv args = {"./test", "-a"};
-  psr->add_argument("-a").action("store_true");
-  
-  argparse::Values val = psr->parse_args(args);
-  EXPECT_TRUE(val.is_true("a"));
-  
+class ParserDest : public ::testing::Test {
+public:
+  argparse::Parser psr;
+  argparse::Argument *arg;
+  virtual void SetUp() {
+    arg = &(psr.add_argument("-a").dest("beta"));
+  }
+};
+
+TEST_F(ParserDest, ok1) {
+  argparse::Argv seq = {"./test", "-a", "v1"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_FALSE(val.is_set("a"));
+  EXPECT_TRUE(val.is_set("beta"));
+  EXPECT_EQ(1, val.size("beta"));
+  EXPECT_EQ("v1", val.get("beta", 0));
 }
 
-TEST(Parser, basic_argument) {
-  argparse::Parser *psr = new argparse::Parser("test");
-  argparse::Argv args = {"./test", "-a", "v"};
-  psr->add_argument("-a");
-  argparse::Values val = psr->parse_args(args);
-  EXPECT_EQ("v", val.get("a"));
-  EXPECT_EQ("v", val.get("a", 0));
-  EXPECT_EQ("v", val["a"]); // ["x"] is same with get("x", 0)
+TEST_F(ParserDest, ok2) {
+  // Use 2nd name if no dest
+  psr.add_argument("-b").name("--gamma");
+  argparse::Argv seq = {"./test", "-b", "v1"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_FALSE(val.is_set("b"));
+  EXPECT_TRUE(val.is_set("gamma"));
+  EXPECT_EQ(1, val.size("gamma"));
+  EXPECT_EQ("v1", val.get("gamma", 0));
 }
 
-
-TEST(Parser, name2) {
-  argparse::Parser *psr = new argparse::Parser("test");
-  psr->add_argument("-a").name("--action");
-  argparse::Argv ok1 = {"./test", "-a", "v"};
-  argparse::Argv ok2 = {"./test", "--action", "v"};
-  argparse::Argv ng1 = {"./test", "-a"}; // Not enough arguments
-  argparse::Argv ng2 = {"./test", "--action"}; // Same as above
-
-  argparse::Values v1 = psr->parse_args(ok1);
-  argparse::Values v2 = psr->parse_args(ok2);
-  EXPECT_EQ(v1.get("action"), "v"); // Using "name2" instead of "dest".
-  EXPECT_EQ(v2.get("action"), "v"); // Same if the option is set by 2nd name.
-
-  EXPECT_THROW(psr->parse_args(ng1), argparse::exception::ParseError);
-  EXPECT_THROW(psr->parse_args(ng1), argparse::exception::ParseError);
+TEST_F(ParserDest, ok3) {
+  // Use dest if both of 2nd name and dest are set.
+  psr.add_argument("-b").name("--gamma").dest("omega");
+  argparse::Argv seq = {"./test", "-b", "v1"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_FALSE(val.is_set("b"));
+  EXPECT_FALSE(val.is_set("gamma"));
+  EXPECT_TRUE(val.is_set("omega"));
+  EXPECT_EQ(1, val.size("omega"));
+  EXPECT_EQ("v1", val.get("omega", 0));
 }
 
 

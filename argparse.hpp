@@ -174,7 +174,11 @@ namespace argparse {
     const std::string& get_name() const { return this->name_; }
     Action get_action() const { return this->action_; }
     const std::string& get_dest() const {
-      return (this->dest_.empty() ? this->name_ : this->dest_);
+      if (this->dest_.empty()) {
+        return (this->name2_.empty() ? this->name_ : this->name2_);
+      } else {
+        return this->dest_;
+      }
     }
     const std::string& get_const() const { return this->const_; }
     const std::string& get_default() const { return this->default_; }
