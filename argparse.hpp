@@ -179,6 +179,8 @@ namespace argparse {
     const std::string& get_const() const { return this->const_; }
     const std::string& get_default() const { return this->default_; }
     ArgType get_type() const { return this->type_; }
+    
+    void check_consistency() const;
   };
   
   
@@ -190,6 +192,7 @@ namespace argparse {
     
   public:
     Parser(const std::string &prog_name);
+    Parser();
     ~Parser();
     Parser(const Parser& obj) = delete;
 

@@ -331,11 +331,40 @@ namespace argparse {
     return *this;
   }
 
+  void Argument::check_consistency() const {
+    // Python's argparse call add_argument with all parameter, but argpares-cpp
+    // does not call with all parameter by design. Then consistency chcker is
+    // required.
+    
+    if ((this->action_ == Action::store_const ||
+         this->action_ == Action::append_const)) {
+      // Checking if const parameter is set for store_const or append_const.
+      if (this->const_.empty()) {
+        std::string msg = "store_const and append_const are "
+                          "required 'const' parameter";
+        throw argparse::exception::ConfigureError(msg, this->name_);
+      }
+      
+      // Checking if nargs is set for store_const or append_const.
+      // nargs should not be modified.
+      if (this->nargs_ != Nargs::NUMBER || this->nargs_num_ != 1) {
+        std::string msg = "store_const and append_const are "
+        "required 'const' parameter";
+        throw argparse::exception::ConfigureError(msg, this->name_);
+      }
+    }
+    
+
+  }
+
   // ========================================================
   // argparse::Parser
   //
   Parser::Parser(const std::string &prog_name)
   : prog_name_(prog_name), proc_(new argparse_internal::ArgumentProcessor()) {
+  }
+  Parser::Parser()
+  : prog_name_("(none)"), proc_(new argparse_internal::ArgumentProcessor()) {
   }
   Parser::~Parser() {
     delete this->proc_;
@@ -591,6 +620,14 @@ namespace argparse_internal {
   
   argparse::Values ArgumentProcessor::parse_args(const argparse::Argv& args)
   const {
+    // Checking consistency of Argument instances.
+    for (auto it : this->argmap_) {
+      (it.second)->check_consistency();
+    }
+    for (size_t i = 0; i < this->argvec_.size(); i++) {
+      this->argvec_[i]->check_consistency();
+    }
+    
     std::shared_ptr<argparse::VarMap> ptr =
       std::make_shared<argparse::VarMap>();
     size_t seq_idx = 0;
