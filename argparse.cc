@@ -44,24 +44,34 @@ namespace argparse {
   //
   exception::ConfigureError::ConfigureError(const std::string& errmsg,
                                             const std::string& tgt) {
-    this->err() << "ConfigureError: " << errmsg << ", '" << tgt << "'";
+    std::stringstream ss;
+    ss << "ConfigureError: " << errmsg << ", '" << tgt << "'";
+    this->err_ = ss.str();
   }
   
   exception::ParseError::ParseError(const std::string &errmsg) {
-    this->err() << "ParseError: " << errmsg;
+    std::stringstream ss;
+    ss << "ParseError: " << errmsg;
+    this->err_ = ss.str();
   }
   
   exception::KeyError::KeyError(const std::string& key,
                                 const std::string &errmsg) {
-    this->err() << "KeyError '" << key << "': " << errmsg;
+    std::stringstream ss;
+    ss << "KeyError '" << key << "': " << errmsg;
+    this->err_ = ss.str();
   }
   
   exception::TypeError::TypeError(const std::string &errmsg) {
-    this->err() << "TypeError: " << errmsg;
+    std::stringstream ss;
+    ss << "TypeError: " << errmsg;
+    this->err_ = ss.str();
   }
 
   exception::IndexError::IndexError(const std::string &errmsg) {
-    this->err() << "IndexError: " << errmsg;
+    std::stringstream ss;
+    ss << "IndexError: " << errmsg;
+    this->err_ = ss.str();
   }
 
 

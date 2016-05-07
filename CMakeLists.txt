@@ -35,7 +35,7 @@ FILE(GLOB TESTSRCS "test/*.cc")
 
 ADD_LIBRARY(argparse SHARED ${BASESRCS})
 ADD_EXECUTABLE(argparse-test ${TESTSRCS})
-TARGET_LINK_LIBRARIES(argparse-test argparse)
+TARGET_LINK_LIBRARIES(argparse-test argparse pthread)
 
 ADD_EXECUTABLE(argparse-example example.cc)
 TARGET_LINK_LIBRARIES(argparse-example argparse)

@@ -63,41 +63,44 @@ namespace argparse {
 
   namespace exception {
     class Exception : public std::exception {
-    private:
-      std::stringstream err_;
     protected:
-      std::stringstream& err() { return this->err_; }
+      std::string err_;
     public:
       Exception() {}
-
+      virtual ~Exception() throw() {} 
       virtual const char* what() const throw() {
-        return this->err_.str().c_str();
+        return this->err_.c_str();
       }
     };
 
     class ConfigureError : public Exception {
     public:
       ConfigureError(const std::string &errmsg, const std::string &tgt);
+      virtual ~ConfigureError() throw() {}
     };
 
     class ParseError : public Exception {
     public:
       ParseError(const std::string &errmsg);
+      virtual ~ParseError() throw() {}
     };
     
     class KeyError : public Exception {
     public:
       KeyError(const std::string& key, const std::string &errmsg);
+      virtual ~KeyError() throw() {}
     };
     
     class TypeError : public Exception {
     public:
       TypeError(const std::string &errmsg);
+      virtual ~TypeError() throw() {}
     };
     
     class IndexError : public Exception {
     public:
       IndexError(const std::string &errmsg);
+      virtual ~IndexError() throw() {}
     };
   }
   
@@ -120,7 +123,7 @@ namespace argparse {
     PLUS,
   };
 
-  typedef std::vector<const std::string> Argv;
+  typedef std::vector<std::string> Argv;
   
   class Argument {
   private:

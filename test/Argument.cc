@@ -36,7 +36,7 @@
 #include "../argparse.hpp"
 
 TEST(Argument, basic) {
-  std::vector<const std::string> seq = {"a", "b"};
+  argparse::Argv seq = {"a", "b"};
 
   argparse_internal::ArgumentProcessor proc;
   auto arg = proc.add_argument("test").nargs(1);
@@ -50,10 +50,10 @@ TEST(Argument, basic) {
 }
 
 TEST(Argument, Integer) {
-  std::vector<const std::string> seq_ok1 = {"10", "b"};
-  std::vector<const std::string> seq_ok2 = {"0", "b"};
-  std::vector<const std::string> seq_ng1 = {"a", "b"};
-  std::vector<const std::string> seq_ng2 = {"-1", "b"};
+  argparse::Argv seq_ok1 = {"10", "b"};
+  argparse::Argv seq_ok2 = {"0", "b"};
+  argparse::Argv seq_ng1 = {"a", "b"};
+  argparse::Argv seq_ng2 = {"-1", "b"};
   
   std::vector<argparse_internal::Var*> options1, options2, options3, options4;
   argparse_internal::ArgumentProcessor proc;
