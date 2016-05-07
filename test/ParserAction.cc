@@ -365,3 +365,13 @@ TEST_F(ParserActionCount, ok_with_default2) {
   EXPECT_EQ(6, val.to_int("a"));
 }
 
+TEST_F(ParserActionCount, ok_with_other_option) {
+  argparse::Argv seq = {"./test", "-aaa", "-b", "v"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ(3, val.to_int("a"));
+  EXPECT_TRUE(val.is_set("b"));
+  EXPECT_EQ("v", val["b"]);
+}
+

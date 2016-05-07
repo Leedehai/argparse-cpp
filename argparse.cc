@@ -833,9 +833,10 @@ namespace argparse_internal {
         const std::string key = arg.substr(2);
         idx = this->parse_option(args, idx + 1, key, ptr.get());
       } else if (arg.substr(0, 1) == "-") {
+        idx = idx + 1;
         for (size_t c = 1; c < arg.length(); c++) {
           const std::string key = arg.substr(c, 1);
-          idx = this->parse_option(args, idx + 1, key, ptr.get());
+          idx = this->parse_option(args, idx, key, ptr.get());
         }
       } else {
         if (this->argvec_.size() <= seq_idx) {
