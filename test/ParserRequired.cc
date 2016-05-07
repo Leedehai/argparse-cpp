@@ -57,3 +57,71 @@ TEST_F(ParserRequired, store_ng) {
   EXPECT_THROW(psr.parse_args(seq), argparse::exception::ParseError);
 }
 
+TEST_F(ParserRequired, append_ok) {
+  arg->action("append");
+  argparse::Argv seq = {"./test", "-a", "v1"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ("v1", val.get("a", 0));
+}
+
+TEST_F(ParserRequired, append_ng) {
+  arg->action("append");
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ParseError);
+}
+
+TEST_F(ParserRequired, store_const_ok) {
+  arg->action("store_const").set_const("c");
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+}
+
+TEST_F(ParserRequired, store_const_ng) {
+  arg->action("store_const").set_const("c");
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ParseError);
+}
+
+TEST_F(ParserRequired, append_const_ok) {
+  arg->action("append_const").set_const("c");
+  argparse::Argv seq = {"./test", "-a", "-a"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(2, val.size("a"));
+}
+
+TEST_F(ParserRequired, append_const_ng) {
+  arg->action("append_const").set_const("c");
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ParseError);
+}
+
+TEST_F(ParserRequired, store_true) {
+  arg->action("store_true");
+  argparse::Argv seq = {"./test"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+}
+
+TEST_F(ParserRequired, store_false) {
+  arg->action("store_false");
+  argparse::Argv seq = {"./test"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+}
+
+TEST_F(ParserRequired, count_ok) {
+  arg->action("count");
+  argparse::Argv seq = {"./test", "-a"};
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+}
+
+TEST_F(ParserRequired, count_ng) {
+  arg->action("count");
+  argparse::Argv seq = {"./test"};
+  EXPECT_THROW(psr.parse_args(seq), argparse::exception::ParseError);
+}
