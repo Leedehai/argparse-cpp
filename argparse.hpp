@@ -210,7 +210,8 @@ namespace argparse {
     ~Parser();
     Parser(const Parser& obj) = delete;
 
-    Argument& add_argument(const std::string &name);
+    Argument& add_argument(const std::string& name,
+                           const std::string& name2="");
     Values parse_args(const Argv& args) const;
     Values parse_args(int argc, char *argv[]) const;
     void usage() const;

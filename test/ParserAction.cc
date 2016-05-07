@@ -347,3 +347,21 @@ TEST_F(ParserActionCount, ng_with_argument) {
   EXPECT_THROW(psr.parse_args(seq), argparse::exception::ParseError);
 }
 
+TEST_F(ParserActionCount, ok_with_default1) {
+  argparse::Argv seq = {"./test"};
+  arg->set_default("5");
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ(5, val.to_int("a"));
+}
+
+TEST_F(ParserActionCount, ok_with_default2) {
+  argparse::Argv seq = {"./test", "-a"};
+  arg->set_default("5");
+  argparse::Values val = psr.parse_args(seq);
+  EXPECT_TRUE(val.is_set("a"));
+  EXPECT_EQ(1, val.size("a"));
+  EXPECT_EQ(6, val.to_int("a"));
+}
+

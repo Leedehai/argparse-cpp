@@ -526,8 +526,13 @@ namespace argparse {
     delete this->proc_;
   }
   
-  Argument& Parser::add_argument(const std::string &name) {
-    return this->proc_->add_argument(name);
+  Argument& Parser::add_argument(const std::string& name,
+                                 const std::string& name2) {
+    Argument& arg = this->proc_->add_argument(name);
+    if (! name2.empty()) {
+      arg.name(name2);
+    }
+    return arg;
   }
 
   Values Parser::parse_args(const Argv& args) const {
@@ -800,10 +805,24 @@ namespace argparse_internal {
       this->argvec_[i]->check_consistency();
     }
     
+    
+
     std::shared_ptr<argparse::VarMap> ptr =
       std::make_shared<argparse::VarMap>();
     size_t seq_idx = 0;
     
+    // Setting default value for 'count' options before parsing.
+    for (auto it : this->argmap_) {
+      const auto& arg = *(it.second);
+      if (! arg.get_default().empty() &&
+          arg.get_action() == argparse::Action::count) {
+        auto vars = new std::vector<Var*>();
+        vars->emplace_back(Var::build_var(arg.get_default(), arg.get_type()));
+        ptr->insert(std::make_pair(arg.get_dest(), vars));
+      }
+    }
+    
+    // Start parsing.
     for (size_t idx = 1; idx < args.size(); ) {
       const std::string& arg = args[idx];
       
