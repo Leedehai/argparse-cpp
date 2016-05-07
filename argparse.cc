@@ -259,10 +259,8 @@ namespace argparse {
         break;
         
       case Action::help:
-        assert(0);
+        // skip
         break;
-        // TODO:
-        // count, help, version
     }
 
     if (opt) {
@@ -511,6 +509,7 @@ namespace argparse {
   Parser::Parser(const std::string &prog_name)
   : prog_name_(prog_name), proc_(new argparse_internal::ArgumentProcessor()),
     output_(&std::cout) {
+    this->add_argument("-h").name("--help").action("help").help("display help");
   }
   Parser::Parser()
   : prog_name_("(none)"), proc_(new argparse_internal::ArgumentProcessor()),

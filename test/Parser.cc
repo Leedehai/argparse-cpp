@@ -82,7 +82,7 @@ TEST(Parser, usage1) {
   std::stringstream out;
   psr.set_output(&out);
   psr.usage();
-  EXPECT_EQ("usage: test [-a VAL] [-b VAL [VAL ...]] x y\n", out.str());
+  EXPECT_EQ("usage: test [-a VAL] [-b VAL [VAL ...]] [-h] x y\n", out.str());
 }
 
 TEST(Parser, usage2) {
@@ -93,7 +93,7 @@ TEST(Parser, usage2) {
   std::stringstream out;
   psr.set_output(&out);
   psr.usage();
-  EXPECT_EQ("usage: test [-m VAL1 VAL2] -n X r1 r2\n", out.str());
+  EXPECT_EQ("usage: test [-h] [-m VAL1 VAL2] -n X r1 r2\n", out.str());
 }
 
 TEST(Parser, help) {
@@ -139,9 +139,9 @@ TEST(Parser, help) {
     idx = next + 1;
   }
   
-  EXPECT_EQ(11, lines.size());
-  EXPECT_EQ("usage: test -d POS [POS ...] [-v VAL1 VAL2] [-z ZUN] p [p ...]",
-            lines[0]);
+  EXPECT_EQ(12, lines.size());
+  EXPECT_EQ("usage: test -d POS [POS ...] [-h] [-v VAL1 VAL2] [-z ZUN] "
+            "p [p ...]",                     lines[0]);
   EXPECT_EQ("",                              lines[1]);
   EXPECT_EQ("positional arguments:",         lines[2]);
   EXPECT_EQ("  p                     Piano", lines[3]);
@@ -149,8 +149,9 @@ TEST(Parser, help) {
   EXPECT_EQ("optional arguments:",           lines[5]);
   EXPECT_EQ("  -d POS [POS ...], --drum POS [POS ...]", lines[6]);
   EXPECT_EQ("                        Drum",  lines[7]);
-  EXPECT_EQ("  -v VAL1 VAL2          Vocal", lines[8]);
-  EXPECT_EQ("  -z ZUN                ",      lines[9]);
+  EXPECT_EQ("  -h, --help            display help", lines[8]);
+  EXPECT_EQ("  -v VAL1 VAL2          Vocal", lines[9]);
+  EXPECT_EQ("  -z ZUN                ",      lines[10]);
   EXPECT_EQ("     Dream divertisement, a memory of a world of morning mist "
-            "in an illusionary.", lines[10]);
+            "in an illusionary.", lines[11]);
 }
