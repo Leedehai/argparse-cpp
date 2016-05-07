@@ -69,4 +69,4 @@ Masayoshi Mizutani <mizutani@sfc.wide.ad.jp>
 License
 -----------------
 
-The BSD 3-Clause License. [see License](LICENSE.md).
+The BSD 2-Clause License. [see License](LICENSE.md).
