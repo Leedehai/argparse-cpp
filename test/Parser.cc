@@ -82,7 +82,7 @@ TEST(Parser, usage1) {
   std::stringstream out;
   psr.set_output(&out);
   psr.usage();
-  EXPECT_EQ("usage: test [-a VAL] [-b VAL [VAL ...]] x y", out.str());
+  EXPECT_EQ("usage: test [-a VAL] [-b VAL [VAL ...]] x y\n", out.str());
 }
 
 TEST(Parser, usage2) {
@@ -93,7 +93,7 @@ TEST(Parser, usage2) {
   std::stringstream out;
   psr.set_output(&out);
   psr.usage();
-  EXPECT_EQ("usage: test [-m VAL1 VAL2] -n X r1 r2", out.str());
+  EXPECT_EQ("usage: test [-m VAL1 VAL2] -n X r1 r2\n", out.str());
 }
 
 TEST(Parser, help) {

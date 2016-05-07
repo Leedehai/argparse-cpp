@@ -882,7 +882,6 @@ namespace argparse_internal {
       ss << arg.usage() << (! usage2.empty() ? ", " + usage2 : "");
     }
     
-    std::cout << arg.get_name() << std::endl;
     *out << "  " << std::setw(tab.length() - 2) << std::left << ss.str();
 
     if (ss.str().length() > tab.length()) {
