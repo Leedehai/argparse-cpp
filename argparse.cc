@@ -806,7 +806,7 @@ namespace argparse_internal {
 
     // Setting default value if missing option.
     for (auto it : this->argmap_) {
-      auto arg = (it.second);
+      auto& arg = (it.second);
       const std::string& dest = arg->get_dest();
       
       if (ptr->find(dest) == ptr->end()) {
@@ -844,6 +844,19 @@ namespace argparse_internal {
           ptr->insert(std::make_pair(dest, vars));
         }
       }
+      
+      // Checking required options.
+      // This check should be done after setting default values.
+      for (auto it : this->argmap_) {
+        auto& arg = (it.second);
+        auto& dest = arg->get_dest();
+        if (ptr->find(dest) == ptr->end() && arg->is_required()) {
+          std::stringstream ss;
+          ss << "option '" << arg->get_name() << "' is required";
+          throw argparse::exception::ParseError(ss.str());
+        }
+      }
+      
     }
     
     argparse::Values vals(ptr);
@@ -860,7 +873,7 @@ namespace argparse_internal {
       buf->str(tab);
     }
     
-    if (arg.get_required() ||
+    if (arg.is_required() ||
         arg.get_format() == argparse::ArgFormat::sequence) {
       (*buf) << " " << usage;
     } else {

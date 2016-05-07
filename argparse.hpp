@@ -185,7 +185,7 @@ namespace argparse {
     const std::string& get_const() const { return this->const_; }
     const std::string& get_default() const { return this->default_; }
     ArgType get_type() const { return this->type_; }
-    bool get_required() const { return this->required_; }
+    bool is_required() const { return this->required_; }
     const std::string& get_help() const { return this->help_; }
     
     void check_consistency() const;
