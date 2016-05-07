@@ -525,6 +525,9 @@ namespace argparse {
 
   Values Parser::parse_args(const Argv& args) const {
     Values val = this->proc_->parse_args(args);
+    if (val.is_help_mode()) {
+      this->help();
+    }
     return val;
   }
 
@@ -631,6 +634,10 @@ namespace argparse {
     return (it != varmap.end());
   }
 
+  bool Values::is_help_mode() const {
+    return this->varmap_->is_help_mode();
+  }
+
 }
 
 
@@ -709,6 +716,14 @@ namespace argparse_internal {
     }
 
     std::shared_ptr<argparse::Argument> argument = it->second;
+    
+    // No parsing option if help
+    if (argument->get_action() == argparse::Action::help) {
+      varmap->set_help_mode(true);
+      return idx;
+    }
+    
+    
     const std::string& dest = argument->get_dest();
     auto vit = varmap->find(dest);
 

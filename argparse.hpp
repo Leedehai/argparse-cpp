@@ -256,6 +256,8 @@ namespace argparse {
     size_t size(const std::string& dest) const;
     bool is_true(const std::string& dest) const;
     bool is_set(const std::string& dest) const;
+    
+    bool is_help_mode() const;
   };
 }
 

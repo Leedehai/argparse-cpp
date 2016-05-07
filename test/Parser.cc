@@ -155,3 +155,14 @@ TEST(Parser, help) {
   EXPECT_EQ("     Dream divertisement, a memory of a world of morning mist "
             "in an illusionary.", lines[11]);
 }
+
+TEST(Parser, help_by_option) {
+  std::stringstream out;
+  argparse::Parser psr("test");
+  psr.set_output(&out);
+  psr.add_argument("p").nargs("+").help("Piano");
+  
+  argparse::Argv seq = {"./test", "-h"};
+  psr.parse_args(seq);
+  EXPECT_FALSE(out.str().empty());
+}
