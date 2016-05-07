@@ -147,6 +147,7 @@ namespace argparse {
     std::string build_usage(const std::string& arg_name) const;
     
     static const std::map<const std::string, Action> ACTION_MAP_;
+    static const std::map<const std::string, ArgType> TYPE_MAP_;
     
   public:
     Argument(argparse_internal::ArgumentProcessor *proc);
@@ -166,6 +167,7 @@ namespace argparse {
     Argument& set_const(const std::string& v_const);
     Argument& set_default(const std::string& v_default);
     Argument& type(ArgType v_type);
+    Argument& type(const std::string& v_type);
     // TODO: implement choices (#1)
     // Argument& choices(const std::string& v_choices);
     Argument& required(bool req);

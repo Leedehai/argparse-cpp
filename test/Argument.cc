@@ -80,6 +80,30 @@ TEST(Argument, help) {
   EXPECT_EQ("save us", arg.get_help());
 }
 
+TEST(Argument, set_type_bool) {
+  argparse_internal::ArgumentProcessor proc;
+  argparse::Argument *arg = &(proc.add_argument("-a").type("bool"));
+  EXPECT_EQ(argparse::ArgType::BOOL, arg->get_type());
+}
+
+TEST(Argument, set_type_str) {
+  argparse_internal::ArgumentProcessor proc;
+  argparse::Argument *arg = &(proc.add_argument("-a").type("str"));
+  EXPECT_EQ(argparse::ArgType::STR, arg->get_type());
+}
+
+TEST(Argument, set_type_int) {
+  argparse_internal::ArgumentProcessor proc;
+  argparse::Argument *arg = &(proc.add_argument("-a").type("int"));
+  EXPECT_EQ(argparse::ArgType::INT, arg->get_type());
+}
+
+TEST(Argument, set_type_invalid) {
+  argparse_internal::ArgumentProcessor proc;
+  EXPECT_THROW(proc.add_argument("-a").type("invalid"),
+               argparse::exception::ConfigureError);
+}
+
 class ArgumentUsage : public ::testing::Test {
 public:
   argparse_internal::ArgumentProcessor proc;

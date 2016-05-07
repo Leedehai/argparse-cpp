@@ -79,7 +79,14 @@ namespace argparse {
     {"count",        Action::count},
     {"help",         Action::help},
   };
+  
+  const std::map<const std::string, ArgType> Argument::TYPE_MAP_ = {
+    {"str",   ArgType::STR},
+    {"int",   ArgType::INT},
+    {"bool",  ArgType::BOOL},
+  };
 
+  
   Argument::Argument(argparse_internal::ArgumentProcessor *proc)
   : arg_format_(ArgFormat::undef),
     nargs_(Nargs::NUMBER),
@@ -351,6 +358,18 @@ namespace argparse {
     this->type_ = v_type;
     return *this;
   }
+  
+  Argument& Argument::type(const std::string& v_type) {
+    auto it = Argument::TYPE_MAP_.find(v_type);
+    if (it == Argument::TYPE_MAP_.end()) {
+      throw exception::ConfigureError("invalid keyword: " + v_type,
+                                      this->name_);
+    }
+    
+    this->type(it->second);
+    return *this;
+  }
+
 
   Argument& Argument::required(bool req) {
     this->required_ = req;
