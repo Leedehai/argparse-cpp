@@ -95,3 +95,62 @@ TEST(Parser, usage2) {
   psr.usage();
   EXPECT_EQ("usage: test [-m VAL1 VAL2] -n X r1 r2", out.str());
 }
+
+TEST(Parser, help) {
+  /* Sample
+   usage: test.py [-h] [-a ALPHA] -b B [-c] [-d [INT [INT ...]]] [-e E [E ...]]
+   [-f [F]]
+   XXX XXX
+   
+   positional arguments:
+   XXX                   test
+   
+   optional arguments:
+   -h, --help            show this help message and exit
+   -a ALPHA, --alpha ALPHA
+   first attack
+   -b B
+   -c
+   -d [INT [INT ...]], --int [INT [INT ...]]
+   -e E [E ...]
+   -f [F]
+   
+   */
+  
+  argparse::Parser psr("test");
+  psr.add_argument("p").nargs("+").help("Piano");
+  psr.add_argument("-d").name("--drum").metavar("POS")
+    .required(true).nargs("+").help("Drum");
+  psr.add_argument("-v").nargs(2).help("Vocal");
+  psr.add_argument("-z").metavar("ZUN")
+    .help("Dream divertisement, a memory of a world of morning mist "
+          "in an illusionary.");
+
+  std::vector<std::string> lines;
+  
+  std::stringstream out;
+  psr.set_output(&out);
+
+  psr.help();
+  std::string buf = out.str();
+  size_t idx = 0, next;
+  while((next = buf.find_first_of("\n", idx)) != std::string::npos) {
+    lines.emplace_back(buf.substr(idx, next - idx));
+    idx = next + 1;
+  }
+  
+  EXPECT_EQ(11, lines.size());
+  EXPECT_EQ("usage: test -d POS [POS ...] [-v VAL1 VAL2] [-z ZUN] p [p ...]",
+            lines[0]);
+  EXPECT_EQ("",                              lines[1]);
+  EXPECT_EQ("positional arguments:",         lines[2]);
+  EXPECT_EQ("  p                     Piano", lines[3]);
+  EXPECT_EQ("",                              lines[4]);
+  EXPECT_EQ("optional arguments:",           lines[5]);
+  EXPECT_EQ("  -d POS [POS ...], --drum POS [POS ...]", lines[6]);
+  EXPECT_EQ("                        Drum",  lines[7]);
+  EXPECT_EQ("  -v VAL1 VAL2          Vocal", lines[8]);
+  EXPECT_EQ("  -z ZUN                ",      lines[9]);
+  EXPECT_EQ("     Dream divertisement, a memory of a world of morning mist "
+            "in an illusionary.", lines[10]);
+}

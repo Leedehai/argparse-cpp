@@ -353,6 +353,8 @@ namespace argparse_internal {
     static void handle_usage_line(const argparse::Argument& arg,
                                   const std::string& tab,
                                   std::stringstream *buf, std::ostream *out);
+    static void handle_help_line(const argparse::Argument& arg,
+                                 std::ostream *out);
 
   public:
     ArgumentProcessor() = default;

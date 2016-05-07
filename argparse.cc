@@ -30,6 +30,8 @@
  */
 
 #include <iostream>
+#include <iomanip>
+#include <set>
 
 #include <assert.h>
 #include "argparse.hpp"
@@ -83,6 +85,7 @@ namespace argparse {
     nargs_(Nargs::NUMBER),
     nargs_num_(1),
     type_(ArgType::STR),
+    required_(false),
     action_(Action::store),
     proc_(proc) {
   }
@@ -526,7 +529,7 @@ namespace argparse {
   
   void Parser::help() const {
     this->usage();
-    
+    this->proc_->help(this->output_);
   }
   
   void Parser::set_output(std::ostream *output) {
@@ -865,23 +868,88 @@ namespace argparse_internal {
     }
   }
   
+  void ArgumentProcessor::handle_help_line(const argparse::Argument &arg,
+                                           std::ostream *out) {
+    std::stringstream ss;
+    const size_t width = 80;
+    const std::string tab("                        ");
+    const std::string help = arg.get_help();
+    
+    if (arg.get_format() == argparse::ArgFormat::sequence) {
+      ss << arg.get_name();
+    } else if (arg.get_format() == argparse::ArgFormat::option){
+      const std::string usage2 = arg.usage2();
+      ss << arg.usage() << (! usage2.empty() ? ", " + usage2 : "");
+    }
+    
+    std::cout << arg.get_name() << std::endl;
+    *out << "  " << std::setw(tab.length() - 2) << std::left << ss.str();
+
+    if (ss.str().length() > tab.length()) {
+      *out << std::endl;
+      if (help.length() < width - tab.length()) {
+        *out << tab << help << std::endl;
+      } else {
+        *out << std::setw(width) << std::right << help << std::endl;
+      }
+    } else {
+      if (help.length() > width - tab.length()) {
+        *out << std::endl << std::setw(width) << std::right << help << std::endl;
+      } else {
+        *out << help << std::endl;
+      }
+    }
+  }
+  
   void ArgumentProcessor::usage(const std::string& prog_name,
                                 std::ostream *out) const {
     std::stringstream ss, tab;
+    std::set<std::string> done_args;
+    
     ss << "usage: " << prog_name ;
     for (size_t i = 0; i < ss.str().length() + 1; i++) {
       tab << " ";
     }
     
     for (auto it : this->argmap_) {
-      handle_usage_line(*(it.second), tab.str(), &ss, out);
+      const std::string& name = it.second->get_name();
+      if (done_args.find(name) == done_args.end()) {
+        done_args.insert(name);
+        handle_usage_line(*(it.second), tab.str(), &ss, out);
+      }
     }
 
     for (size_t n = 0; n < this->argvec_.size(); n++) {
-      handle_usage_line(*(this->argvec_[n]), tab.str(), &ss, out);
+      const std::string& name = this->argvec_[n]->get_name();
+      if (done_args.find(name) == done_args.end()) {
+        done_args.insert(name);
+        handle_usage_line(*(this->argvec_[n]), tab.str(), &ss, out);
+      }
     }
     
-    *out << ss.str();
+    *out << ss.str() << std::endl;
   }
   
+  void ArgumentProcessor::help(std::ostream *out) const {
+    std::set<std::string> done_args;
+
+    *out << std::endl << "positional arguments:" << std::endl;
+    for (size_t n = 0; n < this->argvec_.size(); n++) {
+      const std::string& name = this->argvec_[n]->get_name();
+      if (done_args.find(name) == done_args.end()) {
+        done_args.insert(name);
+        handle_help_line(*(this->argvec_[n]), out);
+      }
+    }
+
+    *out << std::endl << "optional arguments:" << std::endl;
+    for (auto it : this->argmap_) {
+      const std::string& name = it.second->get_name();
+      if (done_args.find(name) == done_args.end()) {
+        done_args.insert(name);
+        handle_help_line(*(it.second), out);
+      }
+    }
+  }
+
 }
