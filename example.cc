@@ -3,7 +3,7 @@
 #include "./argparse.hpp"
 
 int main(int argc, char *argv[]) {
-  argparse::Parser psr;
+  argparse::Parser psr("argparse-example");
   psr.add_argument("-c").name("--config").set_default("conf.yml")
     .metavar("FILE").help("Configuration file");
   psr.add_argument("-v").name("--verbose").action("store_true")
