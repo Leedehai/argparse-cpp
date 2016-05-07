@@ -219,8 +219,23 @@ namespace argparse {
     void set_output(std::ostream *output);
   };
 
+  /*
   typedef std::map<const std::string,
                    std::vector<argparse_internal::Var*>*> VarMap;
+   */
+  // DO NOT Upcast because destructor of std::map is not virtual.
+  
+  class VarMap : public std::map<const std::string,
+  std::vector<argparse_internal::Var*>*> {
+  private:
+    bool help_;
+
+  public:
+    VarMap() : help_(false) {};
+    ~VarMap() {}
+    void set_help(bool help) { this->help_ = help; }
+    bool is_help() const { return this->help_; }
+  };
   
   class Values {
   private:
