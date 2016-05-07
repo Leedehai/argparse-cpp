@@ -352,10 +352,6 @@ namespace argparse {
     return *this;
   }
 
-  Argument& Argument::choices(const std::string &v_choices) {
-    return *this;
-  }
-
   Argument& Argument::required(bool req) {
     this->required_ = req;
     return *this;
